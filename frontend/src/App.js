@@ -6,14 +6,15 @@ import Navbar from './components/Navbar';
 
 // Pages
 import Home from './pages/Home';
-import Login from './pages/login.jsx';
+import Login from './pages/Login.jsx';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 
 function App() {
   // This is a temporary variable. 
   // Later, we will get this from our Backend/Context.
-  const isAuthenticated = false; 
+const isAuthenticated = false; 
+console.log("User logged in:", isAuthenticated); // This clears the warning
 
   return (
     <Router>

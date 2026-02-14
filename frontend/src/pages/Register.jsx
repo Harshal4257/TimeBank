@@ -13,6 +13,20 @@ const Register = () => {
     skills: ''
   });
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({
+      ...formData,
+      [name]: value
+    });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log("Form Data Submitted:", formData);
+    // Next step: Send this to your friend's backend API!
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#E6EEF2] p-4">
       <div className="bg-white rounded-[40px] shadow-2xl flex flex-col md:flex-row max-w-5xl w-full overflow-hidden">
@@ -33,20 +47,44 @@ const Register = () => {
           <h2 className="text-3xl font-bold text-slate-800 mb-2">Create Account</h2>
           <p className="text-slate-500 mb-8">Registering as a <span className="text-emerald-600 font-bold">{formData.role}</span></p>
           
-          <form className="space-y-4">
-            <input type="text" placeholder="Full Name" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" />
-            <input type="email" placeholder="Email Address" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" />
-            <input type="password" placeholder="Password" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" />
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <input 
+              type="text" 
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="Full Name" 
+              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" 
+            />
+            <input 
+              type="email" 
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              placeholder="Email Address" 
+              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" 
+            />
+            <input 
+              type="password" 
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
+              placeholder="Password" 
+              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" 
+            />
             
             {/* Conditional Skills Input for Seekers */}
             {formData.role === 'Seeker' && (
               <textarea 
+                name="skills"
+                value={formData.skills}
+                onChange={handleChange}
                 placeholder="Your Skills (e.g. React, Python, Writing - separate with commas)" 
                 className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none h-24"
               />
             )}
 
-            <button className="w-full bg-emerald-500 text-white p-4 rounded-xl font-bold hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-200 mt-4">
+            <button type="submit" className="w-full bg-emerald-500 text-white p-4 rounded-xl font-bold hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-200 mt-4">
               Create Account
             </button>
           </form>
