@@ -1,4 +1,5 @@
 const Job = require('../models/Job');
+const calculateMatchScore = require('../utils/matchSkills');
 
 // @desc    Create a new job
 // @route   POST /api/jobs
@@ -12,7 +13,7 @@ const createJob = async (req, res) => {
             description,
             requiredSkills,
             hourlyRate,
-            poster: req.user.id // This comes from the 'protect' middleware!
+            poster: req.user.id 
         });
 
         res.status(201).json(job);
@@ -26,7 +27,6 @@ const createJob = async (req, res) => {
 // @access  Public
 const getJobs = async (req, res) => {
     try {
-        // .populate('poster', 'name email') replaces the ID with actual user info
         const jobs = await Job.find().populate('poster', 'name email');
         res.json(jobs);
     } catch (error) {
@@ -51,8 +51,32 @@ const getJobById = async (req, res) => {
     }
 };
 
+// @desc    Get jobs ranked by skill match for the logged-in user
+// @route   GET /api/jobs/recommendations
+// @access  Private
+const getRecommendedJobs = async (req, res) => {
+    try {
+        const user = req.user; 
+        const jobs = await Job.find();
+
+        const recommendations = jobs.map(job => {
+            const score = calculateMatchScore(user.skills, job.requiredSkills);
+            return { ...job._doc, matchScore: score };
+        });
+
+        // Sort: Highest match score first
+        recommendations.sort((a, b) => b.matchScore - a.matchScore);
+
+        res.json(recommendations);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Export ALL functions so the router can use them
 module.exports = {
     createJob,
     getJobs,
     getJobById,
+    getRecommendedJobs // <--- This was missing!
 };

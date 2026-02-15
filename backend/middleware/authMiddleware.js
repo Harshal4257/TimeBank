@@ -4,21 +4,25 @@ const User = require('../models/User');
 const protect = async (req, res, next) => {
     let token;
 
-    // 1. Check if the "Authorization" header exists and starts with "Bearer"
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         try {
-            // Get token from header (Format: "Bearer <token>")
             token = req.headers.authorization.split(' ')[1];
 
-            // 2. Verify token
+            // Verify token
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-            // 3. Get user from the token (exclude password)
-            req.user = await User.findById(decoded.id).select('-password');
+            // Get user from the token (exclude password)
+            // We use decoded.id because that's what was signed in the controller
+            const user = await User.findById(decoded.id).select('-password');
 
-            next(); // Move to the next middleware/controller
+            if (!user) {
+                return res.status(401).json({ message: 'Not authorized, user not found' });
+            }
+
+            req.user = user;
+            next(); 
         } catch (error) {
-            console.error(error);
+            console.error("Auth Middleware Error:", error.message);
             res.status(401).json({ message: 'Not authorized, token failed' });
         }
     }
@@ -28,7 +32,6 @@ const protect = async (req, res, next) => {
     }
 };
 
-// Middleware to check for "Admin" role
 const admin = (req, res, next) => {
     if (req.user && req.user.role === 'Admin') {
         next();
