@@ -3,7 +3,8 @@ const router = express.Router();
 const { 
     applyForJob, 
     getJobApplications, 
-    getMyApplications 
+    getMyApplications,
+    completeJob // <--- 1. ADD THIS IMPORT HERE
 } = require('../controllers/applicationController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -15,5 +16,8 @@ router.get('/job/:jobId', protect, getJobApplications);
 
 // Route to get my applications (Seeker only)
 router.get('/my', protect, getMyApplications);
+
+// Route to complete a job and transfer credits
+router.put('/:id/complete', protect, completeJob);
 
 module.exports = router;

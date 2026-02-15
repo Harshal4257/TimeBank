@@ -8,7 +8,8 @@ const userSchema = new mongoose.Schema({
     email: { 
         type: String, 
         required: true, 
-        unique: true 
+        unique: true,
+        lowercase: true // Ensures email matching isn't case-sensitive
     },
     password: { 
         type: String, 
@@ -16,21 +17,37 @@ const userSchema = new mongoose.Schema({
     },
     role: { 
         type: String, 
-        enum: ['Poster', 'Seeker', 'Admin'], // Restricts role to these 3 options
+        enum: ['Poster', 'Seeker', 'Admin'], 
         default: 'Seeker' 
     },
     skills: {
-        type: [String], // Array of strings (e.g., ["Python", "React"])
+        type: [String], 
         default: []
+    },
+    bio: {
+        type: String,
+        default: ""
     },
     rating: { 
         type: Number, 
         default: 0 
     },
+    numReviews: {
+        type: Number,
+        default: 0
+    },
+    // The "Time Currency" - ensure this is what the frontend asks for
+    credits: {
+        type: Number,
+        default: 30, 
+        min: 0 // Prevents credits from accidentally going negative
+    },
     createdAt: { 
         type: Date, 
         default: Date.now 
     }
+}, {
+    timestamps: true // Automatically manages createdAt and updatedAt
 });
 
 module.exports = mongoose.model('User', userSchema);

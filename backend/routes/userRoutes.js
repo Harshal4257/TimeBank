@@ -1,11 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { registerUser, loginUser } = require('../controllers/userController');
+const { registerUser, loginUser, getUserProfile } = require('../controllers/userController');
+const { protect } = require('../middleware/authMiddleware'); // Ensure this path is correct
 
-// Route for User Registration
+// Public Routes
 router.post('/register', registerUser);
-
-// Route for User Login
 router.post('/login', loginUser);
+
+// Private/Protected Route - This is what the Dashboard needs!
+router.get('/profile', protect, getUserProfile);
 
 module.exports = router;

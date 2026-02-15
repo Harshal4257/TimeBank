@@ -1,99 +1,57 @@
 import React, { useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import API from '../services/api';
 
 const Register = () => {
-  const [searchParams] = useSearchParams();
-  const roleFromUrl = searchParams.get('role') || 'Seeker';
-  
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    role: roleFromUrl,
-    skills: ''
+    name: '', email: '', password: '', role: 'Seeker', skills: ''
   });
+  const navigate = useNavigate();
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Form Data Submitted:", formData);
-    // Next step: Send this to your friend's backend API!
+    try {
+      // Sending skills as an array since your model likely expects that
+      const dataToSend = { ...formData, skills: formData.skills.split(',') };
+      await API.post('/users/register', dataToSend);
+      alert("Registration Successful! Please login.");
+      navigate('/login');
+    } catch (err) {
+      alert(err.response?.data?.message || "Registration failed");
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#E6EEF2] p-4">
-      <div className="bg-white rounded-[40px] shadow-2xl flex flex-col md:flex-row max-w-5xl w-full overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
+        <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center">Create Account</h2>
         
-        {/* Left Side: Branding */}
-        <div className="md:w-1/2 bg-[#2D3339] p-12 text-white flex flex-col justify-center">
-          <h2 className="text-4xl font-bold mb-6">Join the Community.</h2>
-          <p className="text-slate-400 text-lg">
-            {formData.role === 'Poster' 
-              ? "Start posting tasks and find the best talent in the network." 
-              : "Showcase your skills and earn time credits by helping others."}
-          </p>
-          <img src="https://illustrations.popsy.co/white/creative-work.svg" alt="Register" className="mt-8 w-64 self-center" />
-        </div>
+        <input type="text" placeholder="Full Name" className="w-full p-3 mb-4 border rounded-xl" 
+          onChange={(e) => setFormData({...formData, name: e.target.value})} required />
+        
+        <input type="email" placeholder="Email Address" className="w-full p-3 mb-4 border rounded-xl" 
+          onChange={(e) => setFormData({...formData, email: e.target.value})} required />
+        
+        <input type="password" placeholder="Password" className="w-full p-3 mb-4 border rounded-xl" 
+          onChange={(e) => setFormData({...formData, password: e.target.value})} required />
 
-        {/* Right Side: Form */}
-        <div className="md:w-1/2 p-12">
-          <h2 className="text-3xl font-bold text-slate-800 mb-2">Create Account</h2>
-          <p className="text-slate-500 mb-8">Registering as a <span className="text-emerald-600 font-bold">{formData.role}</span></p>
-          
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <input 
-              type="text" 
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Full Name" 
-              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" 
-            />
-            <input 
-              type="email" 
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Email Address" 
-              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" 
-            />
-            <input 
-              type="password" 
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Password" 
-              className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none" 
-            />
-            
-            {/* Conditional Skills Input for Seekers */}
-            {formData.role === 'Seeker' && (
-              <textarea 
-                name="skills"
-                value={formData.skills}
-                onChange={handleChange}
-                placeholder="Your Skills (e.g. React, Python, Writing - separate with commas)" 
-                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none h-24"
-              />
-            )}
+        <select className="w-full p-3 mb-4 border rounded-xl bg-white" 
+          onChange={(e) => setFormData({...formData, role: e.target.value})}>
+          <option value="Seeker">Seeker (I want to learn)</option>
+          <option value="Poster">Poster (I want to teach)</option>
+        </select>
 
-            <button type="submit" className="w-full bg-emerald-500 text-white p-4 rounded-xl font-bold hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-200 mt-4">
-              Create Account
-            </button>
-          </form>
+        <input type="text" placeholder="Skills (comma separated: Java, Python)" className="w-full p-3 mb-6 border rounded-xl" 
+          onChange={(e) => setFormData({...formData, skills: e.target.value})} />
 
-          <p className="mt-6 text-center text-slate-500 text-sm">
-            Already have an account? <Link to="/login" className="text-emerald-600 font-bold">Log In</Link>
-          </p>
-        </div>
-      </div>
+        <button className="w-full bg-emerald-500 text-white py-3 rounded-xl font-bold hover:bg-emerald-600 transition-all">
+          Sign Up
+        </button>
+        
+        <p className="mt-4 text-center text-slate-500 text-sm">
+          Already have an account? <Link to="/login" className="text-emerald-600 font-bold">Login</Link>
+        </p>
+      </form>
     </div>
   );
 };

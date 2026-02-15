@@ -1,15 +1,22 @@
 const express = require('express');
 const router = express.Router();
-const { createJob, getJobs, getJobById } = require('../controllers/jobController');
+const { 
+    createJob, 
+    getJobs, 
+    getJobById, 
+    getRecommendedJobs // Make sure this is imported!
+} = require('../controllers/jobController');
 const { protect } = require('../middleware/authMiddleware');
 
-// Route to Get all jobs (Public) and Post a job (Private)
+// 1. Static/Specific routes MUST come first
+router.get('/recommendations', protect, getRecommendedJobs);
+
+// 2. The root route
 router.route('/')
     .get(getJobs)
     .post(protect, createJob);
 
-// Route to Get a specific job by ID (Public)
-router.route('/:id')
-    .get(getJobById);
+// 3. Dynamic routes (with :id) MUST come last
+router.get('/:id', getJobById);
 
 module.exports = router;
