@@ -3,39 +3,50 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 
 // Layout Components
 import Navbar from './components/Navbar';
-
+import RegisterChoice from './pages/RegisterChoice';
 // Pages
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-// ADD THESE IMPORTS TO FIX THE WHITE SCREEN:
 import PostTask from './pages/PostTask'; 
 import Marketplace from './pages/Marketplace'; 
+import SeekerDashboard from './pages/SeekerDashboard';
 
 function App() {
-  // Check if token exists in localStorage to determine authentication
   const isAuthenticated = !!localStorage.getItem('token'); 
-  console.log("User logged in:", isAuthenticated);
-
+  
   return (
     <Router>
       <div className="App font-sans bg-slate-50 min-h-screen">
+        {/* Navbar will now show on every page and can access localStorage for the profile menu */}
         <Navbar /> 
         
         <Routes>
           <Route path="/" element={<Home />} />
-          
-          {/* Auth Pages */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/register-choice" element={<RegisterChoice />} /> 
+
+          {/* Unified Dashboard Route */}
+          <Route 
+            path="/dashboard" 
+            element={
+              isAuthenticated ? (
+                // This will use the combined logic we wrote earlier to show Seeker or Poster view
+                <Dashboard /> 
+              ) : (
+                <Navigate to="/login" />
+              )
+            } 
+          />
+
+          {/* Specialized Seeker Route (if you prefer a direct path) */}
+          <Route path="/seekerdashboard" element={<SeekerDashboard />} /> 
           
-          {/* Protected Routes */}
-          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/post-task" element={<PostTask />} />
           <Route path="/marketplace" element={<Marketplace />} />
-
-          {/* Fallback */}
+          
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </div>

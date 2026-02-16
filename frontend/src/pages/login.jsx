@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import API from '../services/api'; // Import our new bridge
+import { useNavigate } from 'react-router-dom';
+import API from '../services/api'; // Ensure this points to your axios instance
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -10,23 +10,39 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const { data } = await API.post('/users/login', { email, password });
-      localStorage.setItem('token', data.token); // Save token like we did in Postman
-      navigate('/dashboard'); // Send user to dashboard after login
+      // 1. Send login request to Backend
+      const { data } = await API.post('/api/users/login', { email, password });
+
+      
+      // 2. Save User Data to LocalStorage
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('userRole', data.user.role); 
+      localStorage.setItem('userSkills', data.user.skills);
+      localStorage.setItem('userEmail', data.user.email);
+
+      // 3. Redirect based on role or to a general dashboard
+      alert("Login Successful!");
+      navigate('/dashboard'); 
     } catch (error) {
-      alert(error.response?.data?.message || "Login failed");
+      // Handles the "secretOrPrivateKey" error or wrong credentials
+      alert(error.response?.data?.message || "Login failed. Check your Backend .env file!");
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#E6EEF2] p-4 font-sans">
       <div className="bg-white rounded-[40px] shadow-2xl flex flex-col md:flex-row max-w-5xl w-full overflow-hidden min-h-[600px]">
+        
         {/* Left Side: Illustration */}
         <div className="md:w-1/2 bg-[#F8FAFC] p-12 flex flex-col justify-center items-center border-r border-slate-100">
-           <img src="https://illustrations.popsy.co/gray/manager.svg" alt="Login Illustration" className="w-80 mb-8" />
-           <p className="text-xl font-medium text-slate-500 text-center px-4">
-             Collaborative work just got easier for community members!
-           </p>
+          <img 
+            src="https://illustrations.popsy.co/gray/manager.svg" 
+            alt="Login Illustration" 
+            className="w-80 mb-8" 
+          />
+          <p className="text-xl font-medium text-slate-500 text-center px-4">
+            Collaborative work just got easier for community members!
+          </p>
         </div>
 
         {/* Right Side: Form */}
@@ -51,11 +67,25 @@ const Login = () => {
               required
             />
             
-            <button type="submit" className="w-full bg-[#2D3339] text-white p-4 rounded-xl font-bold hover:bg-black transition-all text-lg shadow-lg">
+            <button 
+              type="submit" 
+              className="w-full bg-[#2D3339] text-white p-4 rounded-xl font-bold hover:bg-black transition-all text-lg shadow-lg"
+            >
               Log In
             </button>
           </form>
-          {/* ... rest of your friend's buttons ... */}
+
+          <div className="mt-8 text-center">
+            <p className="text-slate-500">
+              Don't have an account? 
+              <button 
+                onClick={() => navigate('/register')} 
+                className="text-emerald-600 font-bold ml-2 hover:underline"
+              >
+                Register
+              </button>
+            </p>
+          </div>
         </div>
       </div>
     </div>

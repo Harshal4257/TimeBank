@@ -1,5 +1,6 @@
-const express = require('express');
 const dotenv = require('dotenv');
+const express = require('express');
+
 const cors = require('cors');
 const connectDB = require('./config/db');
 
@@ -12,6 +13,15 @@ const taskRoutes = require('./routes/taskRoutes'); // Task routes imported corre
 
 // Load environment variables
 dotenv.config();
+
+// Temporary hardcoded values for testing
+process.env.MONGO_URI = 'mongodb+srv://sayalitarle:kirtitarle@cluster0.9xnxuy5.mongodb.net/test?appName=TimeBank';
+process.env.JWT_SECRET = 'any_random_secret_key_12345';
+process.env.PORT = '5000';
+
+// Debug: Check if environment variables are loaded
+console.log('MONGO_URI:', process.env.MONGO_URI);
+console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'Set' : 'Missing');
 
 // Connect to Database
 connectDB();
