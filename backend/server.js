@@ -1,6 +1,8 @@
-const dotenv = require('dotenv');
-const express = require('express');
+const path = require('path');
+// This line tells the server exactly where to find the .env file
+require('dotenv').config({ path: path.resolve(__dirname, '.env') }); 
 
+const express = require('express');
 const cors = require('cors');
 const connectDB = require('./config/db');
 
@@ -9,19 +11,7 @@ const userRoutes = require('./routes/userRoutes');
 const jobRoutes = require('./routes/jobRoutes');
 const applicationRoutes = require('./routes/applicationRoutes');
 const reviewRoutes = require('./routes/reviewRoutes'); 
-const taskRoutes = require('./routes/taskRoutes'); // Task routes imported correctly
-
-// Load environment variables
-dotenv.config();
-
-// Temporary hardcoded values for testing
-process.env.MONGO_URI = 'mongodb+srv://sayalitarle:kirtitarle@cluster0.9xnxuy5.mongodb.net/test?appName=TimeBank';
-process.env.JWT_SECRET = 'any_random_secret_key_12345';
-process.env.PORT = '5000';
-
-// Debug: Check if environment variables are loaded
-console.log('MONGO_URI:', process.env.MONGO_URI);
-console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'Set' : 'Missing');
+const taskRoutes = require('./routes/taskRoutes');
 
 // Connect to Database
 connectDB();
@@ -29,24 +19,26 @@ connectDB();
 const app = express();
 
 // Middleware
-app.use(cors()); 
+// Replace app.use(cors()); with this:
+app.use(cors({
+  origin: 'http://localhost:3000', // Allow your React app
+  credentials: true
+}));
 app.use(express.json()); 
-
-// Basic Route for Testing
-app.get('/', (req, res) => {
-  res.send('TimeBank API is running...');
-});
 
 // Use Routes
 app.use('/api/users', userRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/reviews', reviewRoutes); 
-app.use('/api/tasks', taskRoutes); // Task endpoint registered correctly
+app.use('/api/tasks', taskRoutes);
 
-// Define Port
+// Basic Route for Testing
+app.get('/', (req, res) => {
+  res.send('TimeBank API is running...');
+});
+
 const PORT = process.env.PORT || 5000;
-
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
