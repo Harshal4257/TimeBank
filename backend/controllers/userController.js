@@ -21,13 +21,20 @@ const registerUser = async (req, res) => {
 
         const user = await User.create({
             name, email, password: hashedPassword, role, skills,
-            credits: 30 // Explicitly setting 30 for new users
+            credits: 30 
         });
 
         if (user) {
+            // UPDATED: Wrapped user details in a 'user' object for Frontend
             res.status(201).json({
-                _id: user.id, name: user.name, email: user.email,
-                role: user.role, token: generateToken(user.id)
+                token: generateToken(user.id),
+                user: {
+                    _id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    skills: user.skills || []
+                }
             });
         }
     } catch (error) {
@@ -41,9 +48,16 @@ const loginUser = async (req, res) => {
     try {
         const user = await User.findOne({ email });
         if (user && (await bcrypt.compare(password, user.password))) {
+            // UPDATED: Wrapped user details in a 'user' object for Frontend
             res.json({
-                _id: user.id, name: user.name, email: user.email,
-                role: user.role, token: generateToken(user.id)
+                token: generateToken(user.id),
+                user: {
+                    _id: user.id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    skills: user.skills || []
+                }
             });
         } else {
             res.status(401).json({ message: 'Invalid email or password' });
@@ -53,7 +67,7 @@ const loginUser = async (req, res) => {
     }
 };
 
-// 3. Get User Profile (The missing piece for your Dashboard)
+// 3. Get User Profile
 const getUserProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
@@ -61,7 +75,7 @@ const getUserProfile = async (req, res) => {
             res.json({
                 _id: user.id,
                 name: user.name,
-                credits: user.credits, // This sends the 30 hours!
+                credits: user.credits, 
                 role: user.role
             });
         } else {
@@ -72,7 +86,6 @@ const getUserProfile = async (req, res) => {
     }
 };
 
-// Exporting all three functions
 module.exports = {
     registerUser,
     loginUser,

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import API from '../services/api'; // Ensure this points to your axios instance
+import API from '../services/api'; 
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -10,22 +10,24 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // 1. Send login request to Backend
-      const { data } = await API.post('/api/users/login', { email, password });
+      // Send login request to Backend
+      // The baseURL in api.js already includes '/api'
+      const { data } = await API.post('/users/login', { email, password });
 
-      
-      // 2. Save User Data to LocalStorage
+      // Save User Data to LocalStorage
+      // Using ?. ensures that if 'skills' or 'role' is missing, it won't throw an error
       localStorage.setItem('token', data.token);
-      localStorage.setItem('userRole', data.user.role); 
-      localStorage.setItem('userSkills', data.user.skills);
-      localStorage.setItem('userEmail', data.user.email);
+      localStorage.setItem('userRole', data.user?.role || 'Seeker'); 
+      localStorage.setItem('userSkills', JSON.stringify(data.user?.skills || []));
+      localStorage.setItem('userEmail', data.user?.email);
 
-      // 3. Redirect based on role or to a general dashboard
       alert("Login Successful!");
       navigate('/dashboard'); 
     } catch (error) {
-      // Handles the "secretOrPrivateKey" error or wrong credentials
-      alert(error.response?.data?.message || "Login failed. Check your Backend .env file!");
+      // This will now show the actual error message from the backend if available
+      const errorMessage = error.response?.data?.message || "Login failed. Check your connection or credentials.";
+      alert(errorMessage);
+      console.error("Login Error:", error);
     }
   };
 
