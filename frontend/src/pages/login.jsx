@@ -22,7 +22,19 @@ const Login = () => {
       localStorage.setItem('userEmail', data.user?.email);
 
       alert("Login Successful!");
-      navigate('/dashboard'); 
+      
+      // Debug: Check what data we're getting
+      console.log('Login response data:', data);
+      console.log('User role:', data.user?.role);
+      
+      const userRole = data.user?.role || 'Seeker';
+      console.log('Redirecting to:', userRole === 'Seeker' ? '/seeker-home' : '/poster/dashboard');
+      
+      if (userRole === 'Seeker') {
+        navigate('/seeker-home');
+      } else {
+        navigate('/poster/dashboard');
+      } 
     } catch (error) {
       // This will now show the actual error message from the backend if available
       const errorMessage = error.response?.data?.message || "Login failed. Check your connection or credentials.";

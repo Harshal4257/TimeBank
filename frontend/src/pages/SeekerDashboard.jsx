@@ -1,178 +1,187 @@
-import React, { useState } from 'react';
-import {
-  Bell, User, ChevronDown, FileText, Star,
-  Settings, HelpCircle, Shield, Search,
-  Bookmark, MessageSquare
-} from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Search, RefreshCw, Settings, Briefcase } from 'lucide-react';
+import SeekerNavbar from '../components/SeekerNavbar';
+import JobCard from '../components/JobCard';
+import API from '../services/api';
 
 const SeekerDashboard = () => {
-  const [showProfile, setShowProfile] = useState(false);
-  const navigate = useNavigate();
+  const [matchingJobs, setMatchingJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [appliedJobs, setAppliedJobs] = useState([]);
+  const [savedJobs, setSavedJobs] = useState([]);
 
-  // Get user data
-  const userEmail = localStorage.getItem('userEmail') || 'sayalitarle1405@gmail.com';
-  const userSkills = localStorage.getItem('userSkills') || 'python,react';
-  const userName = localStorage.getItem('userName') || 'Tejal';
+  useEffect(() => {
+    fetchMatchingJobs();
+  }, []);
 
-  // Convert user skills into array
-  const skillArray = userSkills.toLowerCase().split(',').map(skill => skill.trim());
+  const fetchMatchingJobs = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await API.get('/api/jobs/match');
+      setMatchingJobs(response.data);
+    } catch (err) {
+      console.error('Error fetching matching jobs:', err);
+      setError('Failed to load matching jobs. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Sample jobs
-  const availableJobs = [
-    { id: 1, title: "Python Automation Task", company: "TechFlow", location: "Remote", salary: "2 Credits/hr", posted: "Just posted", skills: ["python"] },
-    { id: 2, title: "Django Backend Fix", company: "CodeBase", location: "Mumbai", salary: "3 Credits/hr", posted: "2 days ago", skills: ["python", "django"] },
-    { id: 3, title: "React UI Improvement", company: "DesignHub", location: "Remote", salary: "2 Credits/hr", posted: "1 day ago", skills: ["react"] }
-  ];
+  const handleApply = async (jobId) => {
+    try {
+      await API.post(`/api/applications/apply/${jobId}`);
+      setAppliedJobs([...appliedJobs, jobId]);
+      alert('Application submitted successfully!');
+    } catch (err) {
+      console.error('Error applying for job:', err);
+      alert('Failed to apply. Please try again.');
+    }
+  };
 
-  // Improved Matching Logic
-  const matchedJobs = availableJobs.filter(job =>
-    job.skills.some(skill => skillArray.includes(skill.toLowerCase()))
-  );
+  const handleSaveJob = async (jobId) => {
+    try {
+      if (savedJobs.includes(jobId)) {
+        await API.delete(`/api/jobs/save/${jobId}`);
+        setSavedJobs(savedJobs.filter(id => id !== jobId));
+      } else {
+        await API.post(`/api/jobs/save/${jobId}`);
+        setSavedJobs([...savedJobs, jobId]);
+      }
+    } catch (err) {
+      console.error('Error saving job:', err);
+      alert('Failed to save job. Please try again.');
+    }
+  };
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/login');
+  const handleUpdateSkills = () => {
+    window.location.href = '/profile';
+  };
+
+  const handleBrowseAllJobs = () => {
+    window.location.href = '/browse-jobs';
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
-
-      {/* --- SEEKER HEADER --- */}
-      <nav className="bg-white border-b border-gray-200 px-6 py-3 flex justify-between items-center shadow-sm">
-        <h1 
-          onClick={() => navigate('/dashboard')}
-          className="text-2xl font-bold text-emerald-600 cursor-pointer"
-        >
-          TimeBank
-        </h1>
-
-        <div className="flex items-center gap-6 relative">
-
-          <span onClick={() => navigate('/dashboard')} className="cursor-pointer font-medium text-gray-700 hover:text-emerald-600">
-            Find Jobs
-          </span>
-
-          <span className="cursor-pointer font-medium text-gray-700 hover:text-emerald-600">
-            My Applications
-          </span>
-
-          <MessageSquare size={20} className="text-gray-600 cursor-pointer" />
-          <Bell size={20} className="text-gray-600 cursor-pointer" />
-
-          {/* Profile */}
-          <button
-            onClick={() => setShowProfile(!showProfile)}
-            className="flex items-center gap-1"
-          >
-            <User size={26} className="text-gray-600" />
-            <ChevronDown size={14} />
-          </button>
-
-          {showProfile && (
-            <div className="absolute right-0 top-12 w-72 bg-white rounded-xl shadow-xl border py-2 z-50">
-              <div className="px-5 py-4 border-b">
-                <p className="text-sm font-bold truncate">{userEmail}</p>
-              </div>
-
-              <div className="text-gray-700">
-                <button onClick={() => navigate('/profile')} className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50 text-sm">
-                  <FileText size={18} /> Profile
-                </button>
-
-                <button className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50 text-sm">
-                  <Star size={18} /> My Reviews
-                </button>
-
-                <button className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50 text-sm">
-                  <Settings size={18} /> Settings
-                </button>
-
-                <button className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50 text-sm">
-                  <HelpCircle size={18} /> Help
-                </button>
-
-                <button className="w-full flex items-center gap-3 px-5 py-3 hover:bg-gray-50 text-sm">
-                  <Shield size={18} /> Privacy Centre
-                </button>
-              </div>
-
-              <div className="border-t mt-2 pt-2">
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-center text-emerald-600 font-bold py-2 hover:underline"
-                >
-                  Sign out
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </nav>
-
-      {/* --- MAIN CONTENT --- */}
-      <main className="max-w-5xl mx-auto mt-10 px-4">
-
+    <div className="min-h-screen bg-[#E6EEF2]">
+      <SeekerNavbar />
+      
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Header Section */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold mb-1">Recommended for you</h2>
-          <p className="text-gray-600 text-sm">
-            Based on your skills:
-            <span className="ml-2 font-semibold text-emerald-600">
-              {userSkills}
-            </span>
-          </p>
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900 mb-2">
+                🔥 Jobs Matching Your Skills
+              </h1>
+              <p className="text-slate-600">
+                Discover opportunities that perfectly match your expertise
+              </p>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={fetchMatchingJobs}
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                Refresh
+              </button>
+              
+              <Link
+                to="/browse-jobs"
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+              >
+                <Search size={18} />
+                Browse All Jobs
+              </Link>
+            </div>
+          </div>
         </div>
 
-        {matchedJobs.length > 0 ? (
-          <div className="grid md:grid-cols-2 gap-6">
-            {matchedJobs.map(job => (
-              <div key={job.id} className="bg-white p-6 rounded-2xl shadow hover:shadow-md transition cursor-pointer">
-
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-bold mb-1 hover:underline">
-                      {job.title}
-                    </h3>
-                    <p className="text-gray-700 font-medium">{job.company}</p>
-                    <p className="text-gray-500 text-sm">{job.location}</p>
-
-                    <div className="mt-3 flex gap-2 flex-wrap">
-                      {job.skills.map((skill, index) => (
-                        <span key={index} className="bg-emerald-100 text-emerald-700 text-xs px-3 py-1 rounded-full">
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <Bookmark size={20} className="text-gray-400" />
-                </div>
-
-                <div className="mt-4 text-sm text-gray-500">
-                  {job.posted} •
-                  <button className="ml-2 text-emerald-600 font-semibold hover:underline">
-                    Apply now
-                  </button>
-                </div>
-
-              </div>
-            ))}
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+            <p className="ml-4 text-slate-600">Finding matching jobs...</p>
           </div>
-        ) : (
-          <div className="flex justify-center items-center h-[60vh]">
-            <div className="text-center bg-white p-12 rounded-3xl shadow border border-dashed">
-              <Search size={48} className="mx-auto text-gray-300 mb-4" />
-              <h3 className="text-xl font-bold text-gray-800">
-                No matching jobs found
-              </h3>
-              <p className="text-gray-500 mt-2">
-                Update your skills in profile to see better matches.
-              </p>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
+            <div className="text-red-600 mb-4">
+              <Settings size={48} className="mx-auto" />
+            </div>
+            <h3 className="text-xl font-semibold text-red-800 mb-2">Something went wrong</h3>
+            <p className="text-red-600 mb-6">{error}</p>
+            <button
+              onClick={fetchMatchingJobs}
+              className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* No Jobs Found State */}
+        {!loading && !error && matchingJobs.length === 0 && (
+          <div className="bg-white border border-slate-200 rounded-xl p-12 text-center">
+            <div className="text-slate-400 mb-6">
+              <Briefcase size={64} className="mx-auto" />
+            </div>
+            <h3 className="text-2xl font-bold text-slate-900 mb-4">
+              😔 No matching jobs found for your skills
+            </h3>
+            <p className="text-slate-600 mb-8 max-w-md mx-auto">
+              Try updating your skills or browse all jobs to find more opportunities
+            </p>
+            
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={handleUpdateSkills}
+                className="px-6 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+              >
+                Update Skills
+              </button>
+              <button
+                onClick={handleBrowseAllJobs}
+                className="px-6 py-3 bg-white border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium"
+              >
+                Browse Jobs
+              </button>
             </div>
           </div>
         )}
 
-      </main>
+        {/* Jobs Grid */}
+        {!loading && !error && matchingJobs.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {matchingJobs.map((job) => (
+              <JobCard
+                key={job._id}
+                job={job}
+                onApply={handleApply}
+                onSave={handleSaveJob}
+                isApplied={appliedJobs.includes(job._id)}
+                isSaved={savedJobs.includes(job._id)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Results Summary */}
+        {!loading && !error && matchingJobs.length > 0 && (
+          <div className="mt-8 text-center text-slate-600">
+            <p>Found {matchingJobs.length} matching jobs</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

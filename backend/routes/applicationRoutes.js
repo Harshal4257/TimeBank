@@ -9,7 +9,7 @@ const {
 const { protect } = require('../middleware/authMiddleware');
 
 // Route to apply for a job (Seeker only)
-router.post('/:jobId', protect, applyForJob);
+router.post('/apply/:jobId', protect, applyForJob);
 
 // Route to get all applicants for a specific job (Poster only)
 router.get('/job/:jobId', protect, getJobApplications);

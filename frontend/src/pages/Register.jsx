@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Plus, X } from 'lucide-react';
 import API from '../services/api'; 
 
 const Register = () => {
@@ -8,12 +9,31 @@ const Register = () => {
     email: '',
     password: '',
     role: 'Seeker', 
+    skills: []
   });
+  const [skillInput, setSkillInput] = useState('');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
     // Dynamically update the state based on input 'name' attribute
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const addSkill = () => {
+    if (skillInput.trim() && !formData.skills.includes(skillInput.trim())) {
+      setFormData({ 
+        ...formData, 
+        skills: [...formData.skills, skillInput.trim()] 
+      });
+      setSkillInput('');
+    }
+  };
+
+  const removeSkill = (skillToRemove) => {
+    setFormData({ 
+      ...formData, 
+      skills: formData.skills.filter(skill => skill !== skillToRemove) 
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -77,8 +97,51 @@ const Register = () => {
               onChange={handleChange}
             >
               <option value="Seeker">Seeker</option>
-              <option value="Provider">Provider</option>
+              <option value="Poster">Poster</option>
             </select>
+
+            {/* Skills Section */}
+            <div className="mt-6">
+              <label className="block text-slate-700 font-medium mb-2">Skills</label>
+              <div className="flex gap-2 mb-2">
+                <input 
+                  type="text" 
+                  placeholder="Add a skill (e.g., JavaScript, React, Python)"
+                  className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  value={skillInput}
+                  onChange={(e) => setSkillInput(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                />
+                <button
+                  type="button"
+                  onClick={addSkill}
+                  className="px-4 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors"
+                >
+                  <Plus size={18} />
+                </button>
+              </div>
+              
+              {/* Skills Tags */}
+              {formData.skills.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {formData.skills.map((skill, index) => (
+                    <span 
+                      key={index}
+                      className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium"
+                    >
+                      {skill}
+                      <button
+                        type="button"
+                        onClick={() => removeSkill(skill)}
+                        className="text-emerald-500 hover:text-emerald-700"
+                      >
+                        <X size={14} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <button 
               type="submit" 
