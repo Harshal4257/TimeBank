@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useContext } from 'react'; // Added useContext
 import { Link, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, LogOut, Bell, Home } from 'lucide-react';
+import { LogOut, Home } from 'lucide-react';
+import { AuthContext } from '../context/AuthContext'; // Ensure this path is correct
 import logoImg from './logo.jpeg';
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const isLoggedIn = !!localStorage.getItem('token'); 
+  // Pull user and logout directly from your AuthContext
+  const { user, logout } = useContext(AuthContext); 
 
   const handleLogout = () => {
-    localStorage.clear();
+    logout(); // This calls the function in AuthContext which clears storage and state
     navigate('/login');
   };
 
@@ -31,7 +33,8 @@ const Navbar = () => {
 
         {/* Navigation Links */}
         <div className="flex items-center gap-8">
-          {isLoggedIn ? (
+          {/* Use the 'user' object from context to decide what to show */}
+          {user ? (
             <>
               <Link to="/" className="text-slate-600 hover:text-emerald-600 font-medium flex items-center gap-2">
                 <Home size={18} /> Home
@@ -41,7 +44,7 @@ const Navbar = () => {
               
               <button 
                 onClick={handleLogout}
-                className="flex items-center gap-2 text-slate-600 hover:text-red-600 font-medium"
+                className="flex items-center gap-2 text-slate-600 hover:text-red-600 font-medium transition-colors"
               >
                 <LogOut size={18} /> Logout
               </button>

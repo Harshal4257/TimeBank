@@ -4,29 +4,31 @@ const {
     createJob, 
     getJobs, 
     getJobById, 
-    getRecommendedJobs, // Make sure this is imported!
-    getMatchingJobs, // New matching jobs endpoint
-    saveJob, // Save job functionality
-    unsaveJob, // Unsave job functionality
-    getSavedJobs // Get saved jobs
+    getMatchingJobs, 
+    getPosterJobs, 
+    saveJob, 
+    unsaveJob, 
+    getSavedJobs,
+    getRecommendedJobs
 } = require('../controllers/jobController');
 const { protect } = require('../middleware/authMiddleware');
 
-// 1. Static/Specific routes MUST come first
+// Dashboard & Matching
+router.get('/match', protect, getMatchingJobs);
+router.get('/my-jobs', protect, getPosterJobs); // DASHBOARD USES THIS
 router.get('/recommendations', protect, getRecommendedJobs);
-router.get('/match', protect, getMatchingJobs); // New endpoint for matching jobs
-router.get('/saved', protect, getSavedJobs); // Get saved jobs
 
-// 2. Save/Unsave job routes
+// Saved Jobs
+router.get('/saved', protect, getSavedJobs); 
 router.post('/save/:jobId', protect, saveJob);
 router.delete('/save/:jobId', protect, unsaveJob);
 
-// 3. The root route
+// Base Job Routes
 router.route('/')
     .get(getJobs)
     .post(protect, createJob);
 
-// 4. Dynamic routes (with :id) MUST come last
+// ID-specific routes (Keep these at the bottom!)
 router.get('/:id', getJobById);
 
 module.exports = router;

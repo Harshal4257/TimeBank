@@ -7,7 +7,9 @@ const PostTask = () => {
     title: '',
     description: '',
     category: 'Programming',
-    hours: 1
+    hours: 1,
+    requiredSkills: '', // New field for Matching Algorithm
+    hourlyRate: 1       // New field required by Job model
   });
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -15,11 +17,19 @@ const PostTask = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await API.post('/tasks', formData);
+      // 1. Process skills: Convert comma-separated string into an array
+      const submissionData = {
+        ...formData,
+        requiredSkills: formData.requiredSkills.split(',').map(skill => skill.trim())
+      };
+
+      // 2. Change endpoint to /jobs
+      await API.post('/jobs', submissionData);
+      
       alert("Task posted successfully!");
-      navigate('/dashboard'); // Redirect back to see updated status
+      navigate('/poster/dashboard'); // Updated to your poster dashboard path
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to post task");
+      setError(err.response?.data?.message || "Failed to post task. Check required fields.");
     }
   };
 
@@ -46,8 +56,20 @@ const PostTask = () => {
             <label className="block text-sm font-semibold text-slate-600 mb-1">Description</label>
             <textarea 
               placeholder="Describe what you need help with..."
-              className="w-full p-3 border border-slate-200 rounded-xl h-32 focus:ring-2 focus:ring-emerald-500 outline-none"
+              className="w-full p-3 border border-slate-200 rounded-xl h-24 focus:ring-2 focus:ring-emerald-500 outline-none"
               onChange={(e) => setFormData({...formData, description: e.target.value})}
+              required 
+            />
+          </div>
+
+          {/* NEW: Required Skills Input Field */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-600 mb-1">Required Skills (Comma separated)</label>
+            <input 
+              type="text" 
+              placeholder="e.g., Python, React, SQL"
+              className="w-full p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
+              onChange={(e) => setFormData({...formData, requiredSkills: e.target.value})}
               required 
             />
           </div>
@@ -77,6 +99,19 @@ const PostTask = () => {
                 required 
               />
             </div>
+          </div>
+
+          {/* NEW: Hourly Rate Input Field */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-600 mb-1">Hourly Rate (Credits/Hour)</label>
+            <input 
+              type="number" 
+              min="1"
+              value={formData.hourlyRate}
+              className="w-full p-3 border border-slate-200 rounded-xl"
+              onChange={(e) => setFormData({...formData, hourlyRate: e.target.value})}
+              required 
+            />
           </div>
 
           <button 

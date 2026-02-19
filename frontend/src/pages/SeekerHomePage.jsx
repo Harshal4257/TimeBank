@@ -21,7 +21,7 @@ const SeekerHomePage = () => {
       setLoading(true);
       setError(null);
       
-      const response = await API.get('/api/jobs/match');
+      const response = await API.get('/jobs/match')
       setMatchingJobs(response.data);
     } catch (err) {
       console.error('Error fetching matching jobs:', err);
