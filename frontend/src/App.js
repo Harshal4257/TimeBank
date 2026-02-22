@@ -15,6 +15,7 @@ import Marketplace from './pages/Marketplace';
 import SeekerHomePage from './pages/SeekerHomePage';
 import PosterDashboard from './pages/PosterDashboard';
 import PosterJobDetail from './pages/PosterJobDetail';
+import PostJob from './pages/PostJob'; // or './components/PostJob'
 
 function AppContent() {
   const location = useLocation();
@@ -63,7 +64,8 @@ function AppContent() {
           path="/seeker-home" 
           element={isAuthenticated ? <SeekerHomePage /> : <Navigate to="/login" />} 
         />
-        
+        // In your App.js or Routes file
+       <Route path="/poster/job/:id/edit" element={<PostJob isEditMode={true} />} />
         {/* POSTER ROUTES */}
         <Route 
           path="/poster/dashboard" 
@@ -100,7 +102,10 @@ function AppContent() {
         
         <Route path="/post-task" element={<PostTask />} />
         <Route path="/marketplace" element={<Marketplace />} />
-        
+        <Route 
+  path="/poster/job/:id/edit" 
+  element={isAuthenticated ? <PostJob /> : <Navigate to="/login" />} 
+/>
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

@@ -158,6 +158,57 @@ const getRecommendedJobs = async (req, res) => {
     }
 };
 
+// @desc    Update a job
+// @route   PUT /api/jobs/:id
+// @access  Private (Poster only)
+const updateJob = async (req, res) => {
+    try {
+        const job = await Job.findById(req.params.id);
+
+        if (!job) {
+            return res.status(404).json({ message: 'Job not found' });
+        }
+
+        // Make sure the logged-in user is the owner of the job
+        if (job.poster.toString() !== req.user.id) {
+            return res.status(401).json({ message: 'User not authorized to update this job' });
+        }
+
+        const updatedJob = await Job.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true, runValidators: true }
+        );
+
+        res.json(updatedJob);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Delete a job
+// @route   DELETE /api/jobs/:id
+// @access  Private (Poster only)
+const deleteJob = async (req, res) => {
+    try {
+        const job = await Job.findById(req.params.id);
+
+        if (!job) {
+            return res.status(404).json({ message: 'Job not found' });
+        }
+
+        // Make sure the logged-in user is the owner
+        if (job.poster.toString() !== req.user.id) {
+            return res.status(401).json({ message: 'User not authorized' });
+        }
+
+        await job.deleteOne();
+        res.json({ message: 'Job removed successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // Export ALL functions
 // At the bottom of controllers/jobController.js
 module.exports = {
@@ -169,5 +220,7 @@ module.exports = {
     saveJob,
     unsaveJob,
     getSavedJobs,
-    getRecommendedJobs // <--- Double check this is here!
+    getRecommendedJobs, 
+    updateJob, 
+    deleteJob ,
 };

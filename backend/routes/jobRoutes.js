@@ -9,7 +9,9 @@ const {
     saveJob, 
     unsaveJob, 
     getSavedJobs,
-    getRecommendedJobs
+    getRecommendedJobs,
+    updateJob, // <--- ADD THIS IMPORT
+    deleteJob,  // <--- ADD THIS IMPORT
 } = require('../controllers/jobController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -27,6 +29,10 @@ router.delete('/save/:jobId', protect, unsaveJob);
 router.route('/')
     .get(getJobs)
     .post(protect, createJob);
+    router.route('/:id')
+    .get(getJobById)           // To view details
+    .put(protect, updateJob)    // <--- THIS WAS MISSING! Handles the Edit
+    .delete(protect, deleteJob); // <--- THIS WAS MISSING! Handles the Delete
 
 // ID-specific routes (Keep these at the bottom!)
 router.get('/:id', getJobById);
