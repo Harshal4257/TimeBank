@@ -21,7 +21,7 @@ const registerUser = async (req, res) => {
 
         const user = await User.create({
             name, email, password: hashedPassword, role, skills,
-            credits: 30 
+            credits: 30
         });
 
         if (user) {
@@ -75,8 +75,49 @@ const getUserProfile = async (req, res) => {
             res.json({
                 _id: user.id,
                 name: user.name,
-                credits: user.credits, 
-                role: user.role
+                email: user.email,
+                credits: user.credits,
+                role: user.role,
+                skills: user.skills,
+                bio: user.bio,
+                rating: user.rating,
+                numReviews: user.numReviews
+            });
+        } else {
+            res.status(404).json({ message: 'User not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// 4. Update User Profile
+const updateUserProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+
+        if (user) {
+            user.name = req.body.name || user.name;
+            user.bio = req.body.bio !== undefined ? req.body.bio : user.bio;
+            user.skills = req.body.skills || user.skills;
+
+            if (req.body.password) {
+                const salt = await bcrypt.genSalt(10);
+                user.password = await bcrypt.hash(req.body.password, salt);
+            }
+
+            const updatedUser = await user.save();
+
+            res.json({
+                _id: updatedUser.id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                credits: updatedUser.credits,
+                role: updatedUser.role,
+                skills: updatedUser.skills,
+                bio: updatedUser.bio,
+                rating: updatedUser.rating,
+                numReviews: updatedUser.numReviews
             });
         } else {
             res.status(404).json({ message: 'User not found' });
@@ -90,4 +131,5 @@ module.exports = {
     registerUser,
     loginUser,
     getUserProfile,
+    updateUserProfile,
 };

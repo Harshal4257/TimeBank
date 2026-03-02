@@ -20,7 +20,7 @@ const SeekerHomePage = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const response = await API.get('/jobs/match')
       setMatchingJobs(response.data);
     } catch (err) {
@@ -33,7 +33,7 @@ const SeekerHomePage = () => {
 
   const handleApply = async (jobId) => {
     try {
-      await API.post(`/api/applications/apply/${jobId}`);
+      await API.post(`/applications/apply/${jobId}`);
       setAppliedJobs([...appliedJobs, jobId]);
       // Show success message
       alert('Application submitted successfully!');
@@ -47,11 +47,11 @@ const SeekerHomePage = () => {
     try {
       if (savedJobs.includes(jobId)) {
         // Remove from saved
-        await API.delete(`/api/jobs/save/${jobId}`);
+        await API.delete(`/jobs/save/${jobId}`);
         setSavedJobs(savedJobs.filter(id => id !== jobId));
       } else {
         // Save job
-        await API.post(`/api/jobs/save/${jobId}`);
+        await API.post(`/jobs/save/${jobId}`);
         setSavedJobs([...savedJobs, jobId]);
       }
     } catch (err) {
@@ -61,19 +61,19 @@ const SeekerHomePage = () => {
   };
 
   const handleUpdateSkills = () => {
-    // Navigate to profile page to update skills
-    window.location.href = '/profile';
+    // Navigate to profile page to update skills (using dashboard as placeholder)
+    window.location.href = '/dashboard';
   };
 
   const handleBrowseAllJobs = () => {
     // Navigate to browse jobs page
-    window.location.href = '/browse-jobs';
+    window.location.href = '/marketplace';
   };
 
   return (
     <div className="min-h-screen bg-[#E6EEF2]">
       <SeekerNavbar />
-      
+
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header Section */}
@@ -87,7 +87,7 @@ const SeekerHomePage = () => {
                 Discover opportunities that perfectly match your expertise
               </p>
             </div>
-            
+
             <div className="flex gap-3">
               <button
                 onClick={fetchMatchingJobs}
@@ -138,7 +138,7 @@ const SeekerHomePage = () => {
             <p className="text-slate-600 mb-8 max-w-md mx-auto">
               Try updating your skills or browse all jobs to find more opportunities
             </p>
-            
+
             <div className="flex justify-center gap-4">
               <button
                 onClick={handleUpdateSkills}

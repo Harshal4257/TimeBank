@@ -60,33 +60,38 @@ const PosterPostJob = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validation
-    if (!formData.title || !formData.description || !formData.hourlyRate || 
-        !formData.location || !formData.workLocation || !formData.totalHours || 
-        !formData.deadline || formData.skills.length === 0) {
+    if (!formData.title || !formData.description || !formData.hourlyRate ||
+      !formData.location || !formData.workLocation || !formData.totalHours ||
+      !formData.deadline || formData.skills.length === 0) {
       alert('Please fill in all required fields and add at least one skill');
       return;
     }
 
     try {
       setLoading(true);
-      
+
       // Prepare job data
       const jobData = {
-        ...formData,
+        title: formData.title,
+        description: formData.description,
+        location: formData.location,
+        workLocation: formData.workLocation,
+        category: formData.category,
         hourlyRate: parseFloat(formData.hourlyRate),
-        totalHours: parseInt(formData.totalHours),
+        hours: parseInt(formData.totalHours),
+        requiredSkills: formData.skills,
         deadline: new Date(formData.deadline).toISOString(),
         status: 'active'
       };
 
-      // Post job to backend
-      const response = await API.post('/api/jobs', jobData);
-      
+      // Post job to backend (removed double /api)
+      const response = await API.post('/jobs', jobData);
+
       alert('Job posted successfully!');
       navigate('/poster/dashboard');
-      
+
     } catch (error) {
       console.error('Error posting job:', error);
       alert('Failed to post job. Please try again.');
@@ -116,7 +121,7 @@ const PosterPostJob = () => {
       <div className="max-w-4xl mx-auto px-6 py-8">
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            
+
             {/* Job Title */}
             <div>
               <label className="block text-slate-700 font-medium mb-2">
@@ -170,7 +175,7 @@ const PosterPostJob = () => {
 
             {/* Two Column Layout */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
+
               {/* Hourly Rate */}
               <div>
                 <label className="block text-slate-700 font-medium mb-2">
@@ -284,7 +289,7 @@ const PosterPostJob = () => {
                   <Plus size={18} />
                 </button>
               </div>
-              
+
               {/* Skills Tags */}
               {formData.skills.length > 0 && (
                 <div className="flex flex-wrap gap-2">
@@ -305,7 +310,7 @@ const PosterPostJob = () => {
                   ))}
                 </div>
               )}
-              
+
               {formData.skills.length === 0 && (
                 <p className="text-slate-500 text-sm">Add at least one required skill</p>
               )}

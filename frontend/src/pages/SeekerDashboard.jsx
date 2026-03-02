@@ -14,13 +14,28 @@ const SeekerDashboard = () => {
 
   useEffect(() => {
     fetchMatchingJobs();
+    fetchSecondaryData();
   }, []);
+
+  const fetchSecondaryData = async () => {
+    try {
+      // Fetch already applied jobs
+      const appsResponse = await API.get('/applications/my');
+      setAppliedJobs(appsResponse.data.map(app => app.jobId?._id));
+
+      // Fetch saved jobs (Ensure this exists on backend if implemented)
+      // const savedResponse = await API.get('/jobs/saved');
+      // setSavedJobs(savedResponse.data.map(j => j._id));
+    } catch (err) {
+      console.error('Error fetching secondary data:', err);
+    }
+  };
 
   const fetchMatchingJobs = async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Hits your Cosine Similarity endpoint
       const response = await API.get('/jobs/match');
       setMatchingJobs(response.data);
@@ -34,7 +49,7 @@ const SeekerDashboard = () => {
 
   const handleApply = async (jobId) => {
     try {
-      await API.post(`/api/applications/apply/${jobId}`);
+      await API.post(`/applications/apply/${jobId}`);
       setAppliedJobs([...appliedJobs, jobId]);
       alert('Application submitted successfully!');
     } catch (err) {
@@ -46,10 +61,10 @@ const SeekerDashboard = () => {
   const handleSaveJob = async (jobId) => {
     try {
       if (savedJobs.includes(jobId)) {
-        await API.delete(`/api/jobs/save/${jobId}`);
+        await API.delete(`/jobs/save/${jobId}`);
         setSavedJobs(savedJobs.filter(id => id !== jobId));
       } else {
-        await API.post(`/api/jobs/save/${jobId}`);
+        await API.post(`/jobs/save/${jobId}`);
         setSavedJobs([...savedJobs, jobId]);
       }
     } catch (err) {
@@ -61,7 +76,7 @@ const SeekerDashboard = () => {
   return (
     <div className="min-h-screen bg-[#E6EEF2]">
       <SeekerNavbar />
-      
+
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header Section */}
         <div className="mb-8">
@@ -75,7 +90,7 @@ const SeekerDashboard = () => {
                 Sorted by how well they match your profile skills.
               </p>
             </div>
-            
+
             <div className="flex gap-3">
               <button
                 onClick={fetchMatchingJobs}
@@ -85,9 +100,9 @@ const SeekerDashboard = () => {
                 <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
                 Recalculate Matches
               </button>
-              
+
               <Link
-                to="/browse-jobs"
+                to="/marketplace"
                 className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
               >
                 <Search size={18} />

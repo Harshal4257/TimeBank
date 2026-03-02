@@ -18,7 +18,7 @@ const applyForJob = async (req, res) => {
         const application = await Application.create({
             jobId,
             seekerId,
-            status: 'Pending'
+            status: 'pending'
         });
 
         res.status(201).json(application);
@@ -33,8 +33,8 @@ const applyForJob = async (req, res) => {
 const getJobApplications = async (req, res) => {
     try {
         const applications = await Application.find({ jobId: req.params.jobId })
-            .populate('seekerId', 'name email skills rating'); 
-        
+            .populate('seekerId', 'name email skills rating');
+
         res.json(applications);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -47,8 +47,8 @@ const getJobApplications = async (req, res) => {
 const getMyApplications = async (req, res) => {
     try {
         const applications = await Application.find({ seekerId: req.user.id })
-            .populate('jobId', 'title hourlyRate status'); 
-        
+            .populate('jobId', 'title hourlyRate status');
+
         res.json(applications);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -61,23 +61,77 @@ const getMyApplications = async (req, res) => {
 const completeJob = async (req, res) => {
     try {
         const application = await Application.findById(req.params.id).populate('jobId');
-        
+
         if (!application) {
             return res.status(404).json({ message: 'Application not found' });
         }
 
         const job = application.jobId;
-        const hours = job.hourlyRate; // This represents the time credits to be transferred
+
+        // Ensure only the poster can complete the job
+        if (job.poster.toString() !== req.user.id.toString()) {
+            return res.status(401).json({ message: 'User not authorized to complete this job' });
+        }
+
+        const creditsToTransfer = job.hourlyRate * job.hours; // This represents the time credits to be transferred
 
         // 1. Update Application status
-        application.status = 'Completed';
+        application.status = 'completed';
         await application.save();
 
-        // 2. Transfer Credits: Poster loses hours, Seeker gains hours
-        await User.findByIdAndUpdate(job.poster, { $inc: { credits: -hours } });
-        await User.findByIdAndUpdate(application.seekerId, { $inc: { credits: hours } });
+        // 2. Transfer Credits: Poster loses credits, Seeker gains credits
+        await User.findByIdAndUpdate(job.poster, { $inc: { credits: -creditsToTransfer } });
+        await User.findByIdAndUpdate(application.seekerId, { $inc: { credits: creditsToTransfer } });
 
         res.json({ message: 'Job completed and credits transferred', application });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const updateApplicationStatus = async (req, res) => {
+    try {
+        const { id, action } = req.params;
+
+        const application = await Application.findById(id).populate('jobId');
+        if (!application) {
+            return res.status(404).json({ message: 'Application not found' });
+        }
+
+        const job = application.jobId;
+
+        // Ensure only the poster can update the status
+        if (job.poster.toString() !== req.user.id.toString()) {
+            return res.status(401).json({ message: 'Not authorized to update this application' });
+        }
+
+        if (action === 'accept') {
+            application.status = 'accepted';
+        } else if (action === 'reject') {
+            application.status = 'rejected';
+        } else {
+            return res.status(400).json({ message: 'Invalid action. Must be accept or reject.' });
+        }
+
+        await application.save();
+        res.json({ message: `Application ${action}ed successfully`, application });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+const getPosterApplications = async (req, res) => {
+    try {
+        // 1. Find all jobs posted by this user
+        const myJobs = await Job.find({ poster: req.user.id });
+        const jobIds = myJobs.map(job => job._id);
+
+        // 2. Find all applications for those jobs
+        const applications = await Application.find({ jobId: { $in: jobIds } })
+            .populate('seekerId', 'name email skills rating')
+            .populate('jobId', 'title status');
+
+        res.json(applications);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -87,5 +141,7 @@ module.exports = {
     applyForJob,
     getJobApplications,
     getMyApplications,
-    completeJob
+    getPosterApplications,
+    completeJob,
+    updateApplicationStatus
 };

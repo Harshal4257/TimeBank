@@ -1,13 +1,13 @@
 import React, { useState, useContext } from 'react'; // Added useContext
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext'; // Ensure this path is correct
-import { 
-  BarChart3, 
-  Briefcase, 
-  Users, 
-  MessageSquare, 
-  CreditCard, 
-  LogOut, 
+import {
+  BarChart3,
+  Briefcase,
+  Users,
+  MessageSquare,
+  CreditCard,
+  LogOut,
   User,
   Menu,
   X
@@ -27,9 +27,8 @@ const PosterNavbar = () => {
     { name: 'Dashboard', path: '/poster/dashboard', icon: BarChart3 },
     { name: 'My Jobs', path: '/poster/jobs', icon: Briefcase },
     { name: 'Applicants', path: '/poster/applicants', icon: Users },
+    { name: 'Post Job', path: '/poster/post-job', icon: Briefcase },
     { name: 'Messages', path: '/poster/messages', icon: MessageSquare },
-    { name: 'Payments', path: '/poster/payments', icon: CreditCard },
-    { name: 'Reports', path: '/poster/reports', icon: BarChart3 }
   ];
 
   return (
@@ -59,24 +58,24 @@ const PosterNavbar = () => {
             </Link>
           ))}
         </div>
-        
+
         {/* Right Section / Profile & Logout */}
         <div className="flex items-center gap-6">
-           <div className="flex items-center gap-2">
-             <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center">
-                <User size={16} className="text-white" />
-             </div>
-             <span className="hidden lg:block text-sm font-semibold text-slate-700">Account</span>
-           </div>
+          <Link to="/profile" className="flex items-center gap-2 group">
+            <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center group-hover:bg-emerald-700 transition-colors">
+              <User size={16} className="text-white" />
+            </div>
+            <span className="hidden lg:block text-sm font-semibold text-slate-700 group-hover:text-emerald-600 transition-colors">Account</span>
+          </Link>
 
-           {/* ADDED LOGOUT BUTTON */}
-           <button 
-             onClick={handleLogout}
-             className="flex items-center gap-2 text-slate-500 hover:text-red-600 font-bold text-sm transition-all border-l pl-6 ml-2"
-           >
-             <LogOut size={18} />
-             <span>Sign Out</span>
-           </button>
+          {/* ADDED LOGOUT BUTTON */}
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-slate-500 hover:text-red-600 font-bold text-sm transition-all border-l pl-6 ml-2"
+          >
+            <LogOut size={18} />
+            <span>Sign Out</span>
+          </button>
         </div>
       </div>
     </nav>

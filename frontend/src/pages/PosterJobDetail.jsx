@@ -1,66 +1,87 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { 
-  Briefcase, 
-  MapPin, 
-  Calendar, 
-  DollarSign, 
-  Clock, 
-  Users, 
-  CheckCircle, 
-  XCircle, 
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import {
+  MapPin,
+  Calendar,
+  DollarSign,
+  Users,
+  CheckCircle,
+  XCircle,
   MessageSquare,
   Edit,
   Trash2,
   ArrowLeft,
   Star,
-  User
+  User,
+  CreditCard
 } from 'lucide-react';
 import API from '../services/api';
 
 const PosterJobDetail = () => {
   const { jobId } = useParams();
+  const navigate = useNavigate();
   const [job, setJob] = useState(null);
   const [applicants, setApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('applicants');
+  const [activeTab, setActiveTab] = useState('pending');
 
-  useEffect(() => {
-    fetchJobDetails();
-  }, [jobId]);
-
-  const fetchJobDetails = async () => {
+  const fetchJobDetails = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Fetch job details
-      const jobResponse = await API.get(`/api/jobs/${jobId}`);
+      const jobResponse = await API.get(`/jobs/${jobId}`);
       setJob(jobResponse.data);
-      
-      // Fetch applicants
-      const applicantsResponse = await API.get(`/api/jobs/${jobId}/applicants`);
-      setApplicants(applicantsResponse.data);
-      
+
+      // Fetch applicants (using correct application route)
+      const applicantsResponse = await API.get(`/applications/job/${jobId}`);
+      // The backend populates seekerId. We need to map it to match the frontend expectations.
+      const formattedApplicants = applicantsResponse.data.map(app => ({
+        ...app,
+        _id: app._id,
+        userId: app.seekerId?._id,
+        name: app.seekerId?.name,
+        email: app.seekerId?.email,
+        rating: app.seekerId?.rating,
+        skills: app.seekerId?.skills,
+        skillsMatch: app.skillsMatch || 0, // Could be calculated on backend
+        appliedDate: app.appliedAt,
+        status: app.status ? app.status.toLowerCase() : 'pending',
+      }));
+      setApplicants(formattedApplicants);
+
     } catch (err) {
       console.error('Error fetching job details:', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [jobId]);
+
+  useEffect(() => {
+    fetchJobDetails();
+  }, [fetchJobDetails]);
 
   const handleApplicantAction = async (applicantId, action) => {
     try {
-      await API.post(`/api/applications/${applicantId}/${action}`);
+      if (action === 'complete') {
+        const confirmPay = window.confirm("Are you sure you want to mark this job as complete? Time Credits will be immediately transferred from your account.");
+        if (!confirmPay) return;
+      }
+      if (action === 'complete') {
+        await API.put(`/applications/${applicantId}/complete`);
+      } else {
+        await API.put(`/applications/${applicantId}/${action}`);
+      }
       fetchJobDetails(); // Refresh data
     } catch (err) {
       console.error(`Error ${action} applicant:`, err);
-      alert(`Failed to ${action} applicant. Please try again.`);
+      alert(err.response?.data?.message || `Failed to ${action} applicant.`);
     }
   };
 
   const handleJobAction = async (action) => {
     try {
-      await API.patch(`/api/jobs/${jobId}/${action}`);
+      await API.put(`/jobs/${jobId}/status`, { status: action === 'close' ? 'Closed' : 'Open' });
       fetchJobDetails(); // Refresh data
     } catch (err) {
       console.error(`Error ${action} job:`, err);
@@ -111,13 +132,11 @@ const PosterJobDetail = () => {
           </div>
         </div>
         <div className="text-right">
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-            applicant.status === 'accepted' 
-              ? 'bg-emerald-100 text-emerald-700'
-              : applicant.status === 'rejected'
-              ? 'bg-red-100 text-red-700'
-              : 'bg-yellow-100 text-yellow-700'
-          }`}>
+          <span className={`px-3 py-1 rounded-full text-xs font-medium ${applicant.status === 'accepted' ? 'bg-emerald-100 text-emerald-700' :
+            applicant.status === 'rejected' ? 'bg-red-100 text-red-700' :
+              applicant.status === 'completed' ? 'bg-blue-100 text-blue-700' :
+                'bg-yellow-100 text-yellow-700'
+            }`}>
             {applicant.status}
           </span>
         </div>
@@ -130,7 +149,7 @@ const PosterJobDetail = () => {
           <span className="text-sm font-bold text-emerald-600">{applicant.skillsMatch}%</span>
         </div>
         <div className="w-full bg-slate-200 rounded-full h-2">
-          <div 
+          <div
             className="bg-emerald-600 h-2 rounded-full transition-all"
             style={{ width: `${applicant.skillsMatch}%` }}
           ></div>
@@ -161,7 +180,7 @@ const PosterJobDetail = () => {
         <button
           onClick={() => handleApplicantAction(applicant._id, 'accept')}
           disabled={applicant.status !== 'pending'}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+          className={`${applicant.status !== 'pending' ? 'hidden' : 'flex'} items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium`}
         >
           <CheckCircle size={16} />
           Accept
@@ -169,11 +188,20 @@ const PosterJobDetail = () => {
         <button
           onClick={() => handleApplicantAction(applicant._id, 'reject')}
           disabled={applicant.status !== 'pending'}
-          className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+          className={`${applicant.status !== 'pending' ? 'hidden' : 'flex'} items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium`}
         >
           <XCircle size={16} />
           Reject
         </button>
+        {applicant.status === 'accepted' && (
+          <button
+            onClick={() => handleApplicantAction(applicant._id, 'complete')}
+            className={`flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium`}
+          >
+            <CreditCard size={16} />
+            Complete & Pay Credits
+          </button>
+        )}
         <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
           <MessageSquare size={16} />
           Message
@@ -191,49 +219,52 @@ const PosterJobDetail = () => {
 
   return (
     <div className="min-h-screen bg-[#E6EEF2]">
-      {/* Poster Navbar */}
-      <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <Link to="/poster/dashboard" className="flex items-center gap-2 text-slate-600 hover:text-emerald-600">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Header / Actions Area */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-3 bg-white border border-slate-200 rounded-xl text-slate-600 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm"
+            >
               <ArrowLeft size={20} />
-              Back to Dashboard
-            </Link>
-            <h1 className="text-xl font-bold text-slate-900">Job Details</h1>
+            </button>
+            <div>
+              <h1 className="text-3xl font-black text-slate-900 tracking-tight">Job Insights</h1>
+              <p className="text-slate-500 font-medium italic">Viewing specific details and applicants</p>
+            </div>
           </div>
-          
+
           <div className="flex gap-2">
             <Link
               to={`/poster/job/${jobId}/edit`}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-bold shadow-lg shadow-blue-100"
             >
-              <Edit size={16} />
-              Edit Job
+              <Edit size={18} />
+              Edit Listing
             </Link>
             {job.status === 'active' ? (
               <button
                 onClick={() => handleJobAction('close')}
-                className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+                className="flex items-center gap-2 px-5 py-3 bg-orange-600 text-white rounded-xl hover:bg-orange-700 transition-colors font-bold shadow-lg shadow-orange-100"
               >
-                <XCircle size={16} />
+                <XCircle size={18} />
                 Close Job
               </button>
             ) : (
               <button
                 onClick={() => handleJobAction('reopen')}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                className="flex items-center gap-2 px-5 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors font-bold shadow-lg shadow-emerald-100"
               >
-                <CheckCircle size={16} />
+                <CheckCircle size={18} />
                 Reopen Job
               </button>
             )}
           </div>
         </div>
-      </nav>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           {/* Job Info Section */}
           <div className="lg:col-span-2 space-y-6">
             {/* Job Header */}
@@ -256,11 +287,10 @@ const PosterJobDetail = () => {
                     </div>
                   </div>
                 </div>
-                <span className={`px-4 py-2 rounded-full text-sm font-medium ${
-                  job.status === 'active' 
-                    ? 'bg-emerald-100 text-emerald-700' 
-                    : 'bg-slate-100 text-slate-700'
-                }`}>
+                <span className={`px-4 py-2 rounded-full text-sm font-medium ${job.status === 'active'
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-slate-100 text-slate-700'
+                  }`}>
                   {job.status === 'active' ? 'Active' : 'Closed'}
                 </span>
               </div>
@@ -313,45 +343,50 @@ const PosterJobDetail = () => {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setActiveTab('pending')}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      activeTab === 'pending'
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'pending'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
                   >
-                    Pending ({applicants.filter(a => a.status === 'pending').length})
+                    Pending ({applicants.filter(a => a.status && a.status.toLowerCase() === 'pending').length})
                   </button>
                   <button
                     onClick={() => setActiveTab('accepted')}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      activeTab === 'accepted'
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'accepted'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
                   >
-                    Accepted ({applicants.filter(a => a.status === 'accepted').length})
+                    Accepted ({applicants.filter(a => a.status && a.status.toLowerCase() === 'accepted').length})
                   </button>
                   <button
                     onClick={() => setActiveTab('rejected')}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      activeTab === 'rejected'
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'rejected'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
                   >
-                    Rejected ({applicants.filter(a => a.status === 'rejected').length})
+                    Rejected ({applicants.filter(a => a.status && a.status.toLowerCase() === 'rejected').length})
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('completed')}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'completed'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                  >
+                    Completed ({applicants.filter(a => a.status && a.status.toLowerCase() === 'completed').length})
                   </button>
                 </div>
               </div>
 
-              {/* Applicants List */}
               <div className="space-y-4">
                 {applicants
-                  .filter(applicant => activeTab === 'all' || applicant.status === activeTab)
+                  .filter(applicant => activeTab === 'all' || (applicant.status && applicant.status.toLowerCase() === activeTab.toLowerCase()))
                   .map((applicant) => (
                     <ApplicantCard key={applicant._id} applicant={applicant} />
                   ))}
-                
+
                 {applicants.filter(applicant => activeTab === 'all' || applicant.status === activeTab).length === 0 && (
                   <div className="text-center py-8">
                     <Users size={48} className="text-slate-400 mx-auto mb-4" />
@@ -377,19 +412,25 @@ const PosterJobDetail = () => {
                 <div className="flex justify-between">
                   <span className="text-slate-600">Pending</span>
                   <span className="font-semibold text-yellow-600">
-                    {applicants.filter(a => a.status === 'pending').length}
+                    {applicants.filter(a => a.status && a.status.toLowerCase() === 'pending').length}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-600">Accepted</span>
                   <span className="font-semibold text-emerald-600">
-                    {applicants.filter(a => a.status === 'accepted').length}
+                    {applicants.filter(a => a.status && a.status.toLowerCase() === 'accepted').length}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-600">Rejected</span>
                   <span className="font-semibold text-red-600">
-                    {applicants.filter(a => a.status === 'rejected').length}
+                    {applicants.filter(a => a.status && a.status.toLowerCase() === 'rejected').length}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Completed</span>
+                  <span className="font-semibold text-blue-600">
+                    {applicants.filter(a => a.status && a.status.toLowerCase() === 'completed').length}
                   </span>
                 </div>
               </div>

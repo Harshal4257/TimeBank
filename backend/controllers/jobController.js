@@ -7,7 +7,7 @@ const calculateMatchScore = require('../utils/matchSkills');
 // @access  Private (Poster only)
 const createJob = async (req, res) => {
     // Added category and hours to destructuring
-    const { title, description, requiredSkills, hourlyRate, category, hours } = req.body;
+    const { title, description, requiredSkills, hourlyRate, category, hours, location, workLocation, deadline } = req.body;
 
     try {
         const job = await Job.create({
@@ -17,7 +17,10 @@ const createJob = async (req, res) => {
             hourlyRate,
             category, // From old Task model
             hours,    // From old Task model
-            poster: req.user.id 
+            location,
+            workLocation,
+            deadline,
+            poster: req.user.id
         });
 
         res.status(201).json(job);
@@ -32,7 +35,7 @@ const createJob = async (req, res) => {
 const getPosterJobs = async (req, res) => {
     try {
         console.log("DEBUG: Logged in User ID:", req.user.id);
-        
+
         // Temporarily remove all filters to see if ANY jobs exist
         const allJobsInDB = await Job.find({});
         console.log("DEBUG: Total jobs existing in DB:", allJobsInDB.length);
@@ -78,11 +81,11 @@ const getMatchingJobs = async (req, res) => {
         console.log("DEBUG: Seeker Skills:", userSkills);
 
         // Change this line to remove the 'status' filter temporarily
-        const allJobs = await Job.find({ 
-            poster: { $ne: req.user.id } 
+        const allJobs = await Job.find({
+            poster: { $ne: req.user.id }
             // status: 'Open'  <-- Comment this out!
         }).populate('poster', 'name email');
-        
+
         console.log("DEBUG: Jobs available for matching:", allJobs.length);
 
         const matchingJobs = allJobs.map(job => {
@@ -134,18 +137,18 @@ const getSavedJobs = async (req, res) => {
 const getRecommendedJobs = async (req, res) => {
     try {
         const userSkills = req.user.skills || [];
-        
+
         // Fetch a limited number of active jobs
-        const jobs = await Job.find({ 
-            status: 'Open', 
-            poster: { $ne: req.user.id } 
+        const jobs = await Job.find({
+            status: 'Open',
+            poster: { $ne: req.user.id }
         }).limit(10).populate('poster', 'name email');
 
         const recommendations = jobs.map(job => {
             const score = calculateMatchScore(userSkills, job.requiredSkills);
-            return { 
-                ...job._doc, 
-                matchScore: Math.round(score * 100) 
+            return {
+                ...job._doc,
+                matchScore: Math.round(score * 100)
             };
         });
 
@@ -209,6 +212,31 @@ const deleteJob = async (req, res) => {
     }
 };
 
+// @desc    Update a job status
+// @route   PUT /api/jobs/:id/status
+// @access  Private (Poster only)
+const updateJobStatus = async (req, res) => {
+    try {
+        const { status } = req.body;
+        const job = await Job.findById(req.params.id);
+
+        if (!job) {
+            return res.status(404).json({ message: 'Job not found' });
+        }
+
+        if (job.poster.toString() !== req.user.id) {
+            return res.status(401).json({ message: 'User not authorized' });
+        }
+
+        job.status = status;
+        await job.save();
+
+        res.json(job);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // Export ALL functions
 // At the bottom of controllers/jobController.js
 module.exports = {
@@ -220,7 +248,8 @@ module.exports = {
     saveJob,
     unsaveJob,
     getSavedJobs,
-    getRecommendedJobs, 
-    updateJob, 
-    deleteJob ,
+    getRecommendedJobs,
+    updateJob,
+    deleteJob,
+    updateJobStatus,
 };

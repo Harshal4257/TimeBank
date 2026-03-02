@@ -20,23 +20,23 @@ const protect = async (req, res, next) => {
             }
 
             req.user = user;
-            next(); 
+            return next();
         } catch (error) {
             console.error("Auth Middleware Error:", error.message);
-            res.status(401).json({ message: 'Not authorized, token failed' });
+            return res.status(401).json({ message: 'Not authorized, token failed' });
         }
     }
 
     if (!token) {
-        res.status(401).json({ message: 'Not authorized, no token' });
+        return res.status(401).json({ message: 'Not authorized, no token' });
     }
 };
 
 const admin = (req, res, next) => {
     if (req.user && req.user.role === 'Admin') {
-        next();
+        return next();
     } else {
-        res.status(401).json({ message: 'Not authorized as an admin' });
+        return res.status(401).json({ message: 'Not authorized as an admin' });
     }
 };
 

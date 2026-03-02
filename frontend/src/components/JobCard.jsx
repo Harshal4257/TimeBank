@@ -1,13 +1,14 @@
-import React from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { Briefcase, MapPin, Clock, DollarSign, Bookmark, ExternalLink } from 'lucide-react';
 
 const JobCard = ({ job, onApply, onSave, isApplied = false, isSaved = false }) => {
+  const navigate = useNavigate();
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffTime = Math.abs(now - date);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays <= 1) return 'Today';
     if (diffDays < 7) return `${diffDays} days ago`;
     if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
@@ -43,11 +44,10 @@ const JobCard = ({ job, onApply, onSave, isApplied = false, isSaved = false }) =
         <div className="flex gap-2">
           <button
             onClick={() => onSave(job._id)}
-            className={`p-2 rounded-xl transition-all ${
-              isSaved 
-                ? 'bg-amber-100 text-amber-600' 
-                : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
-            }`}
+            className={`p-2 rounded-xl transition-all ${isSaved
+              ? 'bg-amber-100 text-amber-600'
+              : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
+              }`}
             title={isSaved ? 'Remove from saved' : 'Save job'}
           >
             <Bookmark size={18} fill={isSaved ? 'currentColor' : 'none'} />
@@ -96,7 +96,7 @@ const JobCard = ({ job, onApply, onSave, isApplied = false, isSaved = false }) =
             </span>
           </div>
           <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-            <div 
+            <div
               className={`${getMatchColor(job.matchScore)} h-full transition-all duration-700 ease-out`}
               style={{ width: `${Math.max(job.matchScore, 5)}%` }} // Minimum 5% width for visibility
             ></div>
@@ -109,17 +109,16 @@ const JobCard = ({ job, onApply, onSave, isApplied = false, isSaved = false }) =
         <button
           onClick={() => onApply(job._id)}
           disabled={isApplied}
-          className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-200 ${
-            isApplied
-              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-              : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-100 hover:shadow-emerald-200'
-          }`}
+          className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-200 ${isApplied
+            ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+            : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-100 hover:shadow-emerald-200'
+            }`}
         >
           {isApplied ? 'Applied' : 'Apply Now'}
         </button>
-        
+
         <button
-          onClick={() => window.open(`/jobs/${job._id}`, '_blank')}
+          onClick={() => navigate(`/jobs/${job._id}`)}
           className="p-3 border border-slate-200 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors"
           title="View full details"
         >
