@@ -55,6 +55,24 @@ const getMyApplications = async (req, res) => {
     }
 };
 
+// @desc    Get my application for a specific job
+// @route   GET /api/applications/job/:jobId/me
+// @access  Private (Seeker)
+const getMyApplicationForJob = async (req, res) => {
+    try {
+        const jobId = req.params.jobId;
+        const seekerId = req.user.id;
+
+        const application = await Application.findOne({ jobId, seekerId });
+        if (!application) {
+            return res.json(null);
+        }
+        res.json(application);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 // @desc    Complete a job and transfer time credits
 // @route   PUT /api/applications/:id/complete
 // @access  Private (Poster only)
@@ -83,9 +101,33 @@ const completeJob = async (req, res) => {
     }
 };
 
+// @desc    Cancel an application (unapply) by seeker
+// @route   DELETE /api/applications/:id
+// @access  Private (Seeker)
+const cancelApplication = async (req, res) => {
+    try {
+        const application = await Application.findById(req.params.id);
+        if (!application) {
+            return res.status(404).json({ message: 'Application not found' });
+        }
+
+        // Only the seeker who applied can cancel
+        if (application.seekerId.toString() !== req.user.id) {
+            return res.status(401).json({ message: 'Not authorized to cancel this application' });
+        }
+
+        await application.deleteOne();
+        res.json({ message: 'Application cancelled' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     applyForJob,
     getJobApplications,
     getMyApplications,
-    completeJob
+    getMyApplicationForJob,
+    completeJob,
+    cancelApplication
 };

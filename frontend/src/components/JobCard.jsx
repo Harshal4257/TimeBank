@@ -1,8 +1,15 @@
 import React from 'react';
-import { Briefcase, MapPin, Clock, DollarSign, Bookmark, ExternalLink } from 'lucide-react';
+import { Briefcase, MapPin, Clock, DollarSign, Bookmark, ExternalLink, Sparkles } from 'lucide-react';
 
 const JobCard = ({ job, onApply, onSave, isApplied = false, isSaved = false }) => {
+  
+  // 1. ENSURE SCORE IS READABLE: 
+  // If backend sends 0.75, we turn it into 75. If it sends 75, we keep 75.
+  const rawScore = job.matchScore || 0;
+  const displayScore = rawScore <= 1 ? Math.round(rawScore * 100) : Math.round(rawScore);
+
   const formatDate = (dateString) => {
+    if (!dateString) return 'Recent';
     const date = new Date(dateString);
     const now = new Date();
     const diffTime = Math.abs(now - date);
@@ -14,7 +21,7 @@ const JobCard = ({ job, onApply, onSave, isApplied = false, isSaved = false }) =
     return `${Math.floor(diffDays / 30)} months ago`;
   };
 
-  // Helper to change color based on the match percentage
+  // Dynamic colors based on the calculated displayScore
   const getMatchColor = (score) => {
     if (score >= 75) return 'bg-emerald-500'; // High Match
     if (score >= 40) return 'bg-amber-500';   // Medium Match
@@ -28,11 +35,19 @@ const JobCard = ({ job, onApply, onSave, isApplied = false, isSaved = false }) =
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-xl transition-all duration-300 hover:border-emerald-300 group flex flex-col h-full">
+    <div className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-xl transition-all duration-300 hover:border-emerald-300 group flex flex-col h-full relative overflow-hidden">
+      
+      {/* High Match Badge */}
+      {displayScore >= 80 && (
+        <div className="absolute -right-12 top-6 rotate-45 bg-emerald-600 text-white text-[10px] font-black py-1 w-44 text-center shadow-lg uppercase tracking-tighter">
+          Best Fit
+        </div>
+      )}
+
       {/* Job Header */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
-          <h3 className="text-xl font-bold text-slate-900 mb-1 group-hover:text-emerald-600 transition-colors line-clamp-1">
+          <h3 className="text-xl font-bold text-slate-900 mb-1 group-hover:text-emerald-600 transition-colors line-clamp-1 pr-8">
             {job.title}
           </h3>
           <p className="text-slate-500 font-medium text-sm flex items-center gap-1">
@@ -48,7 +63,6 @@ const JobCard = ({ job, onApply, onSave, isApplied = false, isSaved = false }) =
                 ? 'bg-amber-100 text-amber-600' 
                 : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
             }`}
-            title={isSaved ? 'Remove from saved' : 'Save job'}
           >
             <Bookmark size={18} fill={isSaved ? 'currentColor' : 'none'} />
           </button>
@@ -86,32 +100,32 @@ const JobCard = ({ job, onApply, onSave, isApplied = false, isSaved = false }) =
         </div>
       </div>
 
-      {/* Match Score Progress Bar */}
-      {job.matchScore !== undefined && (
-        <div className="mb-6 p-3 bg-slate-50 rounded-xl border border-slate-100">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-bold text-slate-500 uppercase">Profile Match</span>
-            <span className={`text-sm font-black ${getMatchTextColor(job.matchScore)}`}>
-              {Math.round(job.matchScore)}%
-            </span>
-          </div>
-          <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-            <div 
-              className={`${getMatchColor(job.matchScore)} h-full transition-all duration-700 ease-out`}
-              style={{ width: `${Math.max(job.matchScore, 5)}%` }} // Minimum 5% width for visibility
-            ></div>
-          </div>
+      {/* Match Score Progress Bar - Updated Logic */}
+      <div className="mb-6 p-3 bg-slate-50 rounded-xl border border-slate-100">
+        <div className="flex items-center justify-between mb-2">
+          <span className="flex items-center gap-1.5 text-[11px] font-bold text-slate-500 uppercase">
+            {displayScore >= 75 && <Sparkles size={12} className="text-emerald-500" />}
+            Profile Match
+          </span>
+          <span className={`text-sm font-black ${getMatchTextColor(displayScore)}`}>
+            {displayScore}%
+          </span>
         </div>
-      )}
+        <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+          <div 
+            className={`${getMatchColor(displayScore)} h-full transition-all duration-1000 ease-out`}
+            style={{ width: `${Math.max(displayScore, 5)}%` }}
+          ></div>
+        </div>
+      </div>
 
       {/* Action Buttons */}
       <div className="flex gap-2">
         <button
           onClick={() => onApply(job._id)}
-          disabled={isApplied}
           className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-200 ${
             isApplied
-              ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+              ? 'bg-slate-100 text-slate-500 border border-slate-200'
               : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-100 hover:shadow-emerald-200'
           }`}
         >
@@ -119,7 +133,7 @@ const JobCard = ({ job, onApply, onSave, isApplied = false, isSaved = false }) =
         </button>
         
         <button
-          onClick={() => window.open(`/jobs/${job._id}`, '_blank')}
+          onClick={() => window.open(`/poster/job/${job._id}`, '_blank')}
           className="p-3 border border-slate-200 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors"
           title="View full details"
         >

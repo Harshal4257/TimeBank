@@ -51,7 +51,7 @@ const getPosterJobs = async (req, res) => {
 const getJobs = async (req, res) => {
     try {
         const query = req.user ? { poster: { $ne: req.user.id } } : {};
-        const jobs = await Job.find(query).populate('poster', 'name email');
+        const jobs = await Job.find(query).populate('poster', 'name email rating numReviews');
         res.json(jobs);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -81,7 +81,7 @@ const getMatchingJobs = async (req, res) => {
         const allJobs = await Job.find({ 
             poster: { $ne: req.user.id } 
             // status: 'Open'  <-- Comment this out!
-        }).populate('poster', 'name email');
+        }).populate('poster', 'name email rating numReviews');
         
         console.log("DEBUG: Jobs available for matching:", allJobs.length);
 
@@ -139,7 +139,7 @@ const getRecommendedJobs = async (req, res) => {
         const jobs = await Job.find({ 
             status: 'Open', 
             poster: { $ne: req.user.id } 
-        }).limit(10).populate('poster', 'name email');
+        }).limit(10).populate('poster', 'name email rating numReviews');
 
         const recommendations = jobs.map(job => {
             const score = calculateMatchScore(userSkills, job.requiredSkills);

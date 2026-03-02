@@ -83,7 +83,7 @@ const PostJob = () => {
   }
 
   // CHANGE THIS LINE:
-  navigate('/poster-dashboard'); 
+  navigate('/poster/dashboard'); 
 
 } catch (err) {
     // This will print the EXACT reason the backend rejected it in your browser console

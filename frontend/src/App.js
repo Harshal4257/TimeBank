@@ -15,6 +15,9 @@ import Marketplace from './pages/Marketplace';
 import SeekerHomePage from './pages/SeekerHomePage';
 import PosterDashboard from './pages/PosterDashboard';
 import PosterJobDetail from './pages/PosterJobDetail';
+import SeekerJobDetail from './pages/SeekerJobDetail';
+import SeekerProfile from './pages/SeekerProfile';
+import EditProfile from './pages/EditProfile';
 import PostJob from './pages/PostJob'; // or './components/PostJob'
 
 function AppContent() {
@@ -92,12 +95,26 @@ function AppContent() {
           element={isAuthenticated ? <PosterDashboard /> : <Navigate to="/login" />} 
         />
         <Route 
-          path="/poster/post-job" 
+  path="/seeker/profile" 
+  element={<SeekerProfile />} 
+/>
+<Route 
+  path="/seeker/profile/edit" 
+  element={isAuthenticated ? <EditProfile /> : <Navigate to="/login" />} 
+/>
+        <Route 
+          path="/poster/job/:id/edit"
           element={isAuthenticated ? <PostTask /> : <Navigate to="/login" />} 
         />
         <Route 
           path="/poster/job/:jobId" 
           element={isAuthenticated ? <PosterJobDetail /> : <Navigate to="/login" />} 
+        />
+
+        {/* Seeker job detail view */}
+        <Route
+          path="/seeker/job/:jobId"
+          element={isAuthenticated ? <SeekerJobDetail /> : <Navigate to="/login" />}
         />
         
         <Route path="/post-task" element={<PostTask />} />

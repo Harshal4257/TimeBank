@@ -70,13 +70,19 @@ const loginUser = async (req, res) => {
 // 3. Get User Profile
 const getUserProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
+        const user = await User.findById(req.user.id).select('-password');
         if (user) {
             res.json({
                 _id: user.id,
                 name: user.name,
-                credits: user.credits, 
-                role: user.role
+                email: user.email,
+                credits: user.credits,
+                role: user.role,
+                avatarUrl: user.avatarUrl || '',
+                skills: user.skills || [],
+                bio: user.bio || '',
+                location: user.location || '',
+                currentRole: user.currentRole || ''
             });
         } else {
             res.status(404).json({ message: 'User not found' });
@@ -86,8 +92,64 @@ const getUserProfile = async (req, res) => {
     }
 };
 
+// 4. Update User Profile
+const updateUserProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        const { name, location, currentRole, skills, bio } = req.body;
+        if (name !== undefined) user.name = name;
+        if (location !== undefined) user.location = location;
+        if (currentRole !== undefined) user.currentRole = currentRole;
+        if (skills !== undefined) user.skills = Array.isArray(skills) ? skills : [];
+        if (bio !== undefined) user.bio = bio;
+
+        await user.save();
+        res.json({
+            _id: user.id,
+            name: user.name,
+            email: user.email,
+            credits: user.credits,
+            role: user.role,
+            avatarUrl: user.avatarUrl || '',
+            skills: user.skills,
+            bio: user.bio,
+            location: user.location,
+            currentRole: user.currentRole
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// 5. Upload / update profile photo
+const uploadProfilePhoto = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // File path is provided by multer middleware
+        user.avatarUrl = `/uploads/profile-photos/${req.file.filename}`;
+        await user.save();
+
+        res.json({
+            message: 'Profile photo updated',
+            avatarUrl: user.avatarUrl
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
     getUserProfile,
+    updateUserProfile,
+    uploadProfilePhoto,
 };
