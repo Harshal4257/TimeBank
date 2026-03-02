@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Search, RefreshCw, Settings, Briefcase } from 'lucide-react';
 import SeekerNavbar from '../components/SeekerNavbar';
 import JobCard from '../components/JobCard';
@@ -11,9 +11,11 @@ const SeekerHomePage = () => {
   const [error, setError] = useState(null);
   const [appliedJobs, setAppliedJobs] = useState([]);
   const [savedJobs, setSavedJobs] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchMatchingJobs();
+    fetchAppliedJobs();
   }, []);
 
   const fetchMatchingJobs = async () => {
@@ -31,16 +33,20 @@ const SeekerHomePage = () => {
     }
   };
 
-  const handleApply = async (jobId) => {
+  const fetchAppliedJobs = async () => {
     try {
-      await API.post(`/applications/apply/${jobId}`);
-      setAppliedJobs([...appliedJobs, jobId]);
-      // Show success message
-      alert('Application submitted successfully!');
+      const res = await API.get('/applications/my');
+      const jobIds = res.data.map((app) =>
+        app.jobId && app.jobId._id ? app.jobId._id : app.jobId
+      );
+      setAppliedJobs(jobIds);
     } catch (err) {
-      console.error('Error applying for job:', err);
-      alert('Failed to apply. Please try again.');
+      console.error('Error fetching applied jobs:', err);
     }
+  };
+
+  const handleApply = async (jobId) => {
+    navigate(`/seeker/job/${jobId}`);
   };
 
   const handleSaveJob = async (jobId) => {
@@ -61,8 +67,8 @@ const SeekerHomePage = () => {
   };
 
   const handleUpdateSkills = () => {
-    // Navigate to profile page to update skills (using dashboard as placeholder)
-    window.location.href = '/dashboard';
+    // Navigate to profile page to update skills
+    window.location.href = '/seeker/profile';
   };
 
   const handleBrowseAllJobs = () => {
@@ -90,7 +96,10 @@ const SeekerHomePage = () => {
 
             <div className="flex gap-3">
               <button
-                onClick={fetchMatchingJobs}
+                onClick={() => {
+                  fetchMatchingJobs();
+                  fetchAppliedJobs();
+                }}
                 disabled={loading}
                 className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >

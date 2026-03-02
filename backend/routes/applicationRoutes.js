@@ -4,9 +4,9 @@ const {
     applyForJob,
     getJobApplications,
     getMyApplications,
-    getPosterApplications,
-    completeJob, // <--- 1. ADD THIS IMPORT HERE
-    updateApplicationStatus
+    getMyApplicationForJob,
+    completeJob,
+    cancelApplication,
 } = require('../controllers/applicationController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -22,7 +22,13 @@ router.get('/poster', protect, getPosterApplications);
 // Route to get my applications (Seeker only)
 router.get('/my', protect, getMyApplications);
 
-// Route to complete a job and transfer credits
+// Route to get my application for a given job (Seeker only)
+router.get('/job/:jobId/me', protect, getMyApplicationForJob);
+
+// Route to cancel (unapply) an application (Seeker only)
+router.delete('/:id', protect, cancelApplication);
+
+// Route to complete a job and transfer credits (Poster only)
 router.put('/:id/complete', protect, completeJob);
 
 // Route to accept or reject an application (Poster only)

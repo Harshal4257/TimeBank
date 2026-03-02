@@ -1,32 +1,36 @@
 /**
- * Calculates Cosine Similarity between two arrays of skills.
- * Updated to handle case sensitivity and whitespace.
+ * Calculates a match score based on the intersection of skills.
+ * This ensures that extra skills on a seeker's profile don't lower the score.
  */
 const calculateMatchScore = (userSkills, jobSkills) => {
-    if (!userSkills || !jobSkills || userSkills.length === 0 || jobSkills.length === 0) return 0;
+    // 1. Validation: If either side has no skills, it's a 0% match
+    if (!userSkills || !jobSkills || !Array.isArray(userSkills) || !Array.isArray(jobSkills)) {
+        return 0;
+    }
 
-    // 1. Normalize both arrays: Lowercase and remove extra spaces
-    const normalizedUser = userSkills.map(s => s.toLowerCase().trim());
-    const normalizedJob = jobSkills.map(s => s.toLowerCase().trim());
+    if (userSkills.length === 0 || jobSkills.length === 0) {
+        return 0;
+    }
 
-    // 2. Create a unique set of all skills from both normalized lists
-    const allSkills = Array.from(new Set([...normalizedUser, ...normalizedJob]));
+    // 2. Normalize: Lowercase, trim, and remove empty strings or nulls
+    const normalizedUser = userSkills
+        .filter(s => s) // Remove null/undefined
+        .map(s => String(s).toLowerCase().trim());
+        
+    const normalizedJob = jobSkills
+        .filter(s => s) // Remove null/undefined
+        .map(s => String(s).toLowerCase().trim());
 
-    // 3. Convert skill lists into binary vectors
-    const userVec = allSkills.map(s => normalizedUser.includes(s) ? 1 : 0);
-    const jobVec = allSkills.map(s => normalizedJob.includes(s) ? 1 : 0);
+    // 3. Count Matches (Intersection)
+    // We want to see how many of the JOB'S required skills the USER has.
+    const matches = normalizedJob.filter(skill => normalizedUser.includes(skill));
 
-    // 4. Calculate Dot Product: $\sum_{i=1}^{n} A_i B_i$
-    const dotProduct = userVec.reduce((sum, val, i) => sum + (val * jobVec[i]), 0);
+    // 4. Calculate Score
+    // Formula: (Number of Matches) / (Total Skills the Job Demands)
+    const score = matches.length / normalizedJob.length;
 
-    // 5. Calculate Magnitudes: $\sqrt{\sum_{i=1}^{n} A_i^2}$
-    const userMag = Math.sqrt(userVec.reduce((sum, val) => sum + (val * val), 0));
-    const jobMag = Math.sqrt(jobVec.reduce((sum, val) => sum + (val * val), 0));
-
-    // 6. Final Cosine Similarity: $\frac{A \cdot B}{\|A\| \|B\|}$
-    if (userMag === 0 || jobMag === 0) return 0;
-    
-    return dotProduct / (userMag * jobMag);
+    // 5. Return as a decimal (e.g., 0.75 for 75%)
+    return parseFloat(score.toFixed(2));
 };
 
 module.exports = calculateMatchScore;

@@ -25,6 +25,10 @@ app.use(cors({
 }));
 app.use(express.json()); 
 
+// Serve uploaded profile photos
+const uploadsPath = path.join(__dirname, 'uploads');
+app.use('/uploads', express.static(uploadsPath));
+
 // Use Routes
 app.use('/api/users', userRoutes);
 app.use('/api/jobs', jobRoutes); // Now handles all Job and Task data

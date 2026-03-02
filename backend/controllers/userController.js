@@ -70,7 +70,7 @@ const loginUser = async (req, res) => {
 // 3. Get User Profile
 const getUserProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
+        const user = await User.findById(req.user.id).select('-password');
         if (user) {
             res.json({
                 _id: user.id,
@@ -78,10 +78,11 @@ const getUserProfile = async (req, res) => {
                 email: user.email,
                 credits: user.credits,
                 role: user.role,
-                skills: user.skills,
-                bio: user.bio,
-                rating: user.rating,
-                numReviews: user.numReviews
+                avatarUrl: user.avatarUrl || '',
+                skills: user.skills || [],
+                bio: user.bio || '',
+                location: user.location || '',
+                currentRole: user.currentRole || ''
             });
         } else {
             res.status(404).json({ message: 'User not found' });
@@ -95,33 +96,51 @@ const getUserProfile = async (req, res) => {
 const updateUserProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
 
-        if (user) {
-            user.name = req.body.name || user.name;
-            user.bio = req.body.bio !== undefined ? req.body.bio : user.bio;
-            user.skills = req.body.skills || user.skills;
+        const { name, location, currentRole, skills, bio } = req.body;
+        if (name !== undefined) user.name = name;
+        if (location !== undefined) user.location = location;
+        if (currentRole !== undefined) user.currentRole = currentRole;
+        if (skills !== undefined) user.skills = Array.isArray(skills) ? skills : [];
+        if (bio !== undefined) user.bio = bio;
 
-            if (req.body.password) {
-                const salt = await bcrypt.genSalt(10);
-                user.password = await bcrypt.hash(req.body.password, salt);
-            }
+        await user.save();
+        res.json({
+            _id: user.id,
+            name: user.name,
+            email: user.email,
+            credits: user.credits,
+            role: user.role,
+            avatarUrl: user.avatarUrl || '',
+            skills: user.skills,
+            bio: user.bio,
+            location: user.location,
+            currentRole: user.currentRole
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
 
-            const updatedUser = await user.save();
-
-            res.json({
-                _id: updatedUser.id,
-                name: updatedUser.name,
-                email: updatedUser.email,
-                credits: updatedUser.credits,
-                role: updatedUser.role,
-                skills: updatedUser.skills,
-                bio: updatedUser.bio,
-                rating: updatedUser.rating,
-                numReviews: updatedUser.numReviews
-            });
-        } else {
-            res.status(404).json({ message: 'User not found' });
+// 5. Upload / update profile photo
+const uploadProfilePhoto = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
         }
+
+        const user = await User.findById(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // File path is provided by multer middleware
+        user.avatarUrl = `/uploads/profile-photos/${req.file.filename}`;
+        await user.save();
+
+        res.json({
+            message: 'Profile photo updated',
+            avatarUrl: user.avatarUrl
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -132,4 +151,5 @@ module.exports = {
     loginUser,
     getUserProfile,
     updateUserProfile,
+    uploadProfilePhoto,
 };

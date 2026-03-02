@@ -20,11 +20,24 @@ const userSchema = new mongoose.Schema({
         enum: ['Poster', 'Seeker', 'Admin'], 
         default: 'Seeker' 
     },
+    // URL to profile photo served by the backend
+    avatarUrl: {
+        type: String,
+        default: ""
+    },
     skills: {
         type: [String], 
         default: []
     },
     bio: {
+        type: String,
+        default: ""
+    },
+    location: {
+        type: String,
+        default: ""
+    },
+    currentRole: {
         type: String,
         default: ""
     },
