@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, RefreshCw, Settings, Briefcase } from 'lucide-react';
+import { RefreshCw, Briefcase } from 'lucide-react';
 import SeekerNavbar from '../components/SeekerNavbar';
 import JobCard from '../components/JobCard';
 import API from '../services/api';
@@ -71,14 +71,8 @@ const SeekerHomePage = () => {
     window.location.href = '/seeker/profile';
   };
 
-  const handleBrowseAllJobs = () => {
-    // Navigate to browse jobs page
-    window.location.href = '/marketplace';
-  };
-
   return (
     <div className="min-h-screen bg-[#E6EEF2]">
-      <SeekerNavbar />
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">

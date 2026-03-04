@@ -4,7 +4,7 @@ const fs = require('fs');
 const multer = require('multer');
 
 const router = express.Router();
-const { registerUser, loginUser, getUserProfile, updateUserProfile, uploadProfilePhoto } = require('../controllers/userController');
+const { registerUser, loginUser, getUserProfile, updateUserProfile, uploadProfilePhoto, getUserById } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware'); // Ensure this path is correct
 
 // Configure storage for profile photos
@@ -32,6 +32,7 @@ router.post('/login', loginUser);
 // Private/Protected Route - This is what the Dashboard needs!
 router.get('/profile', protect, getUserProfile);
 router.put('/profile', protect, updateUserProfile);
+router.get('/profile/:id', protect, getUserById);
 
 // Upload profile photo
 router.post('/profile/photo', protect, upload.single('photo'), uploadProfilePhoto);

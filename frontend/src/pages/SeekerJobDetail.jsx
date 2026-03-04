@@ -75,7 +75,6 @@ const SeekerJobDetail = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#E6EEF2]">
-        <SeekerNavbar />
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-600" />
           <p className="ml-3 text-slate-600">Loading job details...</p>
@@ -87,7 +86,6 @@ const SeekerJobDetail = () => {
   if (!job) {
     return (
       <div className="min-h-screen bg-[#E6EEF2]">
-        <SeekerNavbar />
         <div className="flex flex-col items-center justify-center py-20">
           <p className="text-xl font-semibold text-slate-800 mb-4">Job not found</p>
           <button
@@ -109,7 +107,6 @@ const SeekerJobDetail = () => {
 
   return (
     <div className="min-h-screen bg-[#E6EEF2]">
-      <SeekerNavbar />
 
       <div className="max-w-4xl mx-auto px-6 py-10">
         <button
@@ -223,10 +220,10 @@ const SeekerJobDetail = () => {
                 {isCompleted
                   ? 'Completed'
                   : isApplied
-                  ? 'Already applied'
-                  : applying
-                  ? 'Submitting application...'
-                  : 'Apply for this job'}
+                    ? 'Already applied'
+                    : applying
+                      ? 'Submitting application...'
+                      : 'Apply for this job'}
               </button>
             </div>
           </div>

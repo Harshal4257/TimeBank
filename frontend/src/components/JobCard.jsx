@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Briefcase, MapPin, Clock, DollarSign, Bookmark, ExternalLink, Sparkles } from 'lucide-react';
 
 const JobCard = ({ job, onApply, onSave, isApplied = false, isSaved = false }) => {
@@ -131,13 +132,13 @@ const JobCard = ({ job, onApply, onSave, isApplied = false, isSaved = false }) =
           {isApplied ? 'Applied' : 'Apply Now'}
         </button>
 
-        <button
-          onClick={() => window.open(`/poster/job/${job._id}`, '_blank')}
+        <Link
+          to={`/jobs/${job._id}`}
           className="p-3 border border-slate-200 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors"
           title="View full details"
         >
           <ExternalLink size={18} />
-        </button>
+        </Link>
       </div>
     </div>
   );

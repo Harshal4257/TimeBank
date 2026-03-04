@@ -15,12 +15,21 @@ import SeekerHomePage from './pages/SeekerHomePage';
 import PosterDashboard from './pages/PosterDashboard';
 import PosterJobDetail from './pages/PosterJobDetail';
 import SeekerJobDetail from './pages/SeekerJobDetail';
-import SeekerProfile from './pages/SeekerProfile';
-import EditProfile from './pages/EditProfile';
-import PostJob from './pages/PostJob'; // or './components/PostJob'
-import SeekerApplications from './pages/SeekerApplications';
-import SeekerJobDetail from './pages/SeekerJobDetail';
+import PosterApplicants from './pages/PosterApplicants';
 import Profile from './pages/Profile';
+import PostJob from './pages/PostJob';
+import PostTask from './pages/PostTask';
+import SeekerApplications from './pages/SeekerApplications';
+import Messages from './pages/Messages';
+import SavedJobs from './pages/SavedJobs';
+import MyReviews from './pages/MyReviews';
+import Settings from './pages/Settings';
+import Help from './pages/Help';
+import Privacy from './pages/Privacy';
+import PosterPayments from './pages/PosterPayments';
+import PosterReports from './pages/PosterReports';
+import PosterPostJob from './pages/PosterPostJob';
+import SeekerNavbar from './components/SeekerNavbar';
 
 function AppContent() {
   const location = useLocation();
@@ -36,15 +45,18 @@ function AppContent() {
 
   // This function ensures only ONE Navbar (or none) is rendered
   const renderNavbar = () => {
-    if (isPosterRoute && isAuthenticated) {
-      return <PosterNavbar />;
+    // Pages that shouldn't have any navigation (like landing/auth might have the main Navbar)
+    const noNavbarPaths = ['/login', '/register', '/register-choice'];
+    if (noNavbarPaths.includes(location.pathname)) return null;
+
+    if (isAuthenticated) {
+      const role = localStorage.getItem('role');
+      if (role === 'Poster' || isPosterRoute) {
+        return <PosterNavbar />;
+      }
+      return <SeekerNavbar />;
     }
-    // If you have a specific SeekerNavbar, return it here. 
-    // Otherwise, this prevents the main Navbar from showing on seeker pages if they have their own.
-    if (isSeekerRoute) {
-      return null;
-    }
-    // Default Navbar for Home, Login, Register, etc.
+    // Default Navbar for Home
     return <Navbar />;
   };
 
@@ -77,6 +89,15 @@ function AppContent() {
           path="/my-applications"
           element={isAuthenticated ? <SeekerApplications /> : <Navigate to="/login" />}
         />
+        <Route
+          path="/seeker/profile/:userId?"
+          element={isAuthenticated ? <Profile /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/profile/:userId?"
+          element={isAuthenticated ? <Profile /> : <Navigate to="/login" />}
+        />
+
         {/* POSTER ROUTES */}
         <Route
           path="/poster/dashboard"
@@ -92,32 +113,50 @@ function AppContent() {
         />
         <Route
           path="/poster/messages"
-          element={isAuthenticated ? <PosterDashboard /> : <Navigate to="/login" />}
+          element={isAuthenticated ? <Messages /> : <Navigate to="/login" />}
         />
         <Route
           path="/poster/payments"
-          element={isAuthenticated ? <PosterDashboard /> : <Navigate to="/login" />}
+          element={isAuthenticated ? <PosterPayments /> : <Navigate to="/login" />}
         />
         <Route
           path="/poster/reports"
-          element={isAuthenticated ? <PosterDashboard /> : <Navigate to="/login" />}
+          element={isAuthenticated ? <PosterReports /> : <Navigate to="/login" />}
         />
         <Route
           path="/poster/post-job"
-          element={isAuthenticated ? <PostTask /> : <Navigate to="/login" />}
+          element={isAuthenticated ? <PosterPostJob /> : <Navigate to="/login" />}
         />
         <Route
           path="/poster/job/:jobId"
           element={isAuthenticated ? <PosterJobDetail /> : <Navigate to="/login" />}
         />
+        <Route
+          path="/poster/job/:id/edit"
+          element={isAuthenticated ? <PosterPostJob /> : <Navigate to="/login" />}
+        />
 
         <Route path="/post-task" element={<PostTask />} />
         <Route path="/marketplace" element={<Marketplace />} />
-        <Route path="/jobs/:jobId" element={isAuthenticated ? <SeekerJobDetail /> : <Navigate to="/login" />} />
+
+        {/* Seeker Job Detail */}
         <Route
-          path="/poster/job/:id/edit"
-          element={isAuthenticated ? <PostJob /> : <Navigate to="/login" />}
+          path="/seeker/job/:jobId"
+          element={isAuthenticated ? <SeekerJobDetail /> : <Navigate to="/login" />}
         />
+        <Route
+          path="/jobs/:jobId"
+          element={isAuthenticated ? <SeekerJobDetail /> : <Navigate to="/login" />}
+        />
+
+        {/* Common Authenticated Routes */}
+        <Route path="/messages" element={isAuthenticated ? <Messages /> : <Navigate to="/login" />} />
+        <Route path="/saved-jobs" element={isAuthenticated ? <SavedJobs /> : <Navigate to="/login" />} />
+        <Route path="/my-reviews" element={isAuthenticated ? <MyReviews /> : <Navigate to="/login" />} />
+        <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
+        <Route path="/help" element={isAuthenticated ? <Help /> : <Navigate to="/login" />} />
+        <Route path="/privacy" element={isAuthenticated ? <Privacy /> : <Navigate to="/login" />} />
+
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

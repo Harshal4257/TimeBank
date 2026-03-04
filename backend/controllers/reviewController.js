@@ -31,4 +31,15 @@ const addReview = async (req, res) => {
     }
 };
 
-module.exports = { addReview };
+const getMyReviews = async (req, res) => {
+    try {
+        const reviews = await Review.find({ revieweeId: req.user.id })
+            .populate('reviewerId', 'name avatarUrl')
+            .populate('jobId', 'title');
+        res.json(reviews);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+module.exports = { addReview, getMyReviews };

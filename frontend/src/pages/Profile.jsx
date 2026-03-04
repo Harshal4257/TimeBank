@@ -19,7 +19,10 @@ import API from '../services/api';
 import SeekerNavbar from '../components/SeekerNavbar';
 import PosterNavbar from '../components/PosterNavbar';
 
+import { useParams } from 'react-router-dom';
+
 const Profile = () => {
+    const { userId } = useParams();
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [editing, setEditing] = useState(false);
@@ -32,25 +35,26 @@ const Profile = () => {
     const [saving, setSaving] = useState(false);
 
     useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                setLoading(true);
+                const endpoint = userId ? `/users/profile/${userId}` : '/users/profile';
+                const response = await API.get(endpoint);
+                const data = response.data.user || response.data;
+                setProfile(data);
+                setFormData({
+                    name: data.name,
+                    bio: data.bio || '',
+                    skills: data.skills || []
+                });
+            } catch (err) {
+                console.error('Error fetching profile:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
         fetchProfile();
-    }, []);
-
-    const fetchProfile = async () => {
-        try {
-            setLoading(true);
-            const response = await API.get('/users/profile');
-            setProfile(response.data);
-            setFormData({
-                name: response.data.name,
-                bio: response.data.bio || '',
-                skills: response.data.skills || []
-            });
-        } catch (err) {
-            console.error('Error fetching profile:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
+    }, [userId]);
 
     const handleUpdate = async (e) => {
         e.preventDefault();
@@ -97,7 +101,6 @@ const Profile = () => {
 
     return (
         <div className="min-h-screen bg-[#E6EEF2]">
-            {isPoster ? <PosterNavbar /> : <SeekerNavbar />}
 
             <div className="max-w-4xl mx-auto px-6 py-10">
 
@@ -111,7 +114,7 @@ const Profile = () => {
                             <div className="w-32 h-32 bg-emerald-600 rounded-3xl flex items-center justify-center text-white text-5xl font-black shadow-lg shadow-emerald-100 border-4 border-white">
                                 {profile.name.charAt(0)}
                             </div>
-                            {!editing && (
+                            {!editing && !userId && (
                                 <button
                                     onClick={() => setEditing(true)}
                                     className="absolute -bottom-2 -right-2 p-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors shadow-lg"

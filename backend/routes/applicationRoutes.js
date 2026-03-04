@@ -7,6 +7,8 @@ const {
     getMyApplicationForJob,
     completeJob,
     cancelApplication,
+    getPosterApplications,
+    updateApplicationStatus
 } = require('../controllers/applicationController');
 const { protect } = require('../middleware/authMiddleware');
 

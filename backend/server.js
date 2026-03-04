@@ -1,6 +1,6 @@
 const path = require('path');
 // This line tells the server exactly where to find the .env file
-require('dotenv').config({ path: path.resolve(__dirname, '.env') }); 
+require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 const express = require('express');
 const cors = require('cors');
@@ -10,7 +10,7 @@ const connectDB = require('./config/db');
 const userRoutes = require('./routes/userRoutes');
 const jobRoutes = require('./routes/jobRoutes');
 const applicationRoutes = require('./routes/applicationRoutes');
-const reviewRoutes = require('./routes/reviewRoutes'); 
+const reviewRoutes = require('./routes/reviewRoutes');
 // REMOVED: taskRoutes import
 
 // Connect to Database
@@ -23,7 +23,7 @@ app.use(cors({
   origin: 'http://localhost:3000', // Allow your React app
   credentials: true
 }));
-app.use(express.json()); 
+app.use(express.json());
 
 // Serve uploaded profile photos
 const uploadsPath = path.join(__dirname, 'uploads');
@@ -33,7 +33,9 @@ app.use('/uploads', express.static(uploadsPath));
 app.use('/api/users', userRoutes);
 app.use('/api/jobs', jobRoutes); // Now handles all Job and Task data
 app.use('/api/applications', applicationRoutes);
-app.use('/api/reviews', reviewRoutes); 
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/messages', require('./routes/messageRoutes'));
+app.use('/api/notifications', require('./routes/notificationRoutes'));
 // REMOVED: app.use('/api/tasks', taskRoutes);
 
 // Basic Route for Testing

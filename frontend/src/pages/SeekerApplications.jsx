@@ -56,7 +56,6 @@ const SeekerApplications = () => {
 
     return (
         <div className="min-h-screen bg-[#E6EEF2]">
-            <SeekerNavbar />
 
             <div className="max-w-7xl mx-auto px-6 py-8">
                 <div className="mb-8">

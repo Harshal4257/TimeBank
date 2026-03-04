@@ -2,8 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Briefcase, Users, DollarSign, Plus, Trash2, Eye, Calendar,
-  MapPin, CheckCircle, ArrowLeft, Edit, Mail, Tag, Clock
+  Briefcase, Users, DollarSign, Plus, Eye, CheckCircle
 } from 'lucide-react';
 import API from '../services/api';
 
@@ -11,7 +10,6 @@ const PosterDashboard = () => {
   const [dashboardStats, setDashboardStats] = useState({ totalJobs: 0, activeJobs: 0, totalApplicants: 0, totalEarnings: 0 });
   const [postedJobs, setPostedJobs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedJob, setSelectedJob] = useState(null); // Logic for View Job
 
   useEffect(() => {
     fetchDashboardData();
@@ -42,23 +40,6 @@ const PosterDashboard = () => {
     }
   };
 
-  // ... after fetchDashboardData ...
-
-  const deleteJob = async (jobId) => {
-    if (!window.confirm("Are you sure you want to delete this job?")) return;
-    try {
-      // Corrected: Removed the manual '/api' prefix
-      await API.delete(`/jobs/${jobId}`);
-
-      setSelectedJob(null);      // Returns user to the list view
-      fetchDashboardData();      // Updates the list to remove the deleted job
-
-      alert("✅ Job deleted successfully.");
-    } catch (err) {
-      console.error("Delete Error:", err.response?.data);
-      alert("❌ Failed to delete: " + (err.response?.data?.message || "Check console"));
-    }
-  };
 
   // ... before StatCard component ...
   // --- Stat Card Component ---

@@ -1,6 +1,8 @@
 const Application = require('../models/Application');
 const Job = require('../models/Job');
 const User = require('../models/User'); // 1. Added this missing import!
+const Message = require('../models/Message'); // Import Message model
+const Notification = require('../models/Notification'); // Import Notification model
 
 // @desc    Apply for a job
 // @route   POST /api/applications/:jobId
@@ -20,6 +22,29 @@ const applyForJob = async (req, res) => {
             seekerId,
             status: 'pending'
         });
+
+        // --- AUTOMATED MESSAGING ---
+        // Notify the poster that someone applied
+        const job = await Job.findById(jobId);
+        const seeker = await User.findById(seekerId);
+
+        if (job && seeker) {
+            await Message.create({
+                sender: seekerId,
+                receiver: job.poster,
+                content: `${seeker.name} applied to your job: "${job.title}"`,
+                isSystemMessage: true
+            });
+
+            await Notification.create({
+                user: job.poster,
+                title: 'New Application!',
+                message: `${seeker.name} applied to your job: "${job.title}"`,
+                type: 'new_application',
+                jobId: job._id
+            });
+        }
+        // ---------------------------
 
         res.status(201).json(application);
     } catch (error) {
@@ -107,9 +132,74 @@ const completeJob = async (req, res) => {
     }
 };
 
-// @desc    Cancel an application (unapply) by seeker
-// @route   DELETE /api/applications/:id
-// @access  Private (Seeker)
+// @desc    Get all applications for jobs posted by this user (Poster)
+// @route   GET /api/applications/poster
+// @access  Private (Poster)
+const getPosterApplications = async (req, res) => {
+    try {
+        const jobs = await Job.find({ poster: req.user.id });
+        const jobIds = jobs.map(j => j._id);
+
+        const applications = await Application.find({ jobId: { $in: jobIds } })
+            .populate('seekerId', 'name email skills rating')
+            .populate('jobId', 'title status');
+
+        res.json(applications);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Update application status (accept/reject)
+// @route   PUT /api/applications/:id/:action
+// @access  Private (Poster)
+const updateApplicationStatus = async (req, res) => {
+    try {
+        const { id, action } = req.params;
+        const application = await Application.findById(id).populate('jobId');
+
+        if (!application) {
+            return res.status(404).json({ message: 'Application not found' });
+        }
+
+        if (application.jobId.poster.toString() !== req.user.id.toString()) {
+            return res.status(401).json({ message: 'Not authorized to update this application' });
+        }
+
+        if (action === 'accept') {
+            application.status = 'accepted';
+        } else if (action === 'reject') {
+            application.status = 'rejected';
+        } else {
+            return res.status(400).json({ message: 'Invalid action. Must be accept or reject.' });
+        }
+
+        await application.save();
+
+        // --- AUTOMATED MESSAGING ---
+        // Notify the seeker about the status update
+        await Message.create({
+            sender: req.user.id,
+            receiver: application.seekerId,
+            content: `Your application for "${application.jobId.title}" has been ${action}ed.`,
+            isSystemMessage: true
+        });
+
+        await Notification.create({
+            user: application.seekerId,
+            title: 'Application Update!',
+            message: `Your application for "${application.jobId.title}" has been ${action}ed.`,
+            type: 'application_update',
+            jobId: application.jobId._id
+        });
+        // ---------------------------
+
+        res.json({ message: `Application ${action}ed successfully`, application });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 const cancelApplication = async (req, res) => {
     try {
         const application = await Application.findById(req.params.id);
@@ -135,5 +225,7 @@ module.exports = {
     getMyApplications,
     getMyApplicationForJob,
     completeJob,
-    cancelApplication
+    cancelApplication,
+    getPosterApplications,
+    updateApplicationStatus
 };

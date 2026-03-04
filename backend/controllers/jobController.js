@@ -1,5 +1,8 @@
 const Job = require('../models/Job');
 const SavedJob = require('../models/SavedJob');
+const User = require('../models/User'); // Import User model
+const Message = require('../models/Message'); // Import Message model
+const Notification = require('../models/Notification'); // Import Notification model
 const calculateMatchScore = require('../utils/matchSkills');
 
 // @desc    Create a new job (Now includes category and hours from Task model)
@@ -22,6 +25,30 @@ const createJob = async (req, res) => {
             deadline,
             poster: req.user.id
         });
+
+        // --- AUTOMATED MESSAGING: notify matching seekers ---
+        const poster = await User.findById(req.user.id);
+        const seekers = await User.find({ role: 'Seeker' });
+
+        for (const seeker of seekers) {
+            const score = calculateMatchScore(seeker.skills || [], requiredSkills);
+            if (score >= 0.4) { // 40% match threshold
+                await Message.create({
+                    sender: req.user.id,
+                    receiver: seeker._id,
+                    content: `${poster.name} posted a new job: "${title}" which matches your skills!`,
+                    isSystemMessage: true
+                });
+                await Notification.create({
+                    user: seeker._id,
+                    title: 'New Job Match!',
+                    message: `${poster.name} posted a new job: "${title}" which matches your skills!`,
+                    type: 'job_match',
+                    jobId: job._id
+                });
+            }
+        }
+        // ----------------------------------------------------
 
         res.status(201).json(job);
     } catch (error) {
@@ -92,6 +119,9 @@ const getMatchingJobs = async (req, res) => {
             const score = calculateMatchScore(userSkills, job.requiredSkills);
             return { ...job._doc, matchScore: Math.round(score * 100) };
         });
+
+        // Sort by matchScore in descending order
+        matchingJobs.sort((a, b) => b.matchScore - a.matchScore);
 
         res.json(matchingJobs);
     } catch (error) {

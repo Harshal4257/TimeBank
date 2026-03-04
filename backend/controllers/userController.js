@@ -146,10 +146,38 @@ const uploadProfilePhoto = async (req, res) => {
     }
 };
 
+// 6. Get User By ID (Public Profile)
+const getUserById = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id).select('-password');
+        if (user) {
+            res.json({
+                _id: user.id,
+                name: user.name,
+                email: user.email,
+                credits: user.credits,
+                role: user.role,
+                avatarUrl: user.avatarUrl || '',
+                skills: user.skills || [],
+                bio: user.bio || '',
+                location: user.location || '',
+                currentRole: user.currentRole || '',
+                rating: user.rating,
+                numReviews: user.numReviews
+            });
+        } else {
+            res.status(404).json({ message: 'User not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
     getUserProfile,
     updateUserProfile,
     uploadProfilePhoto,
+    getUserById
 };
