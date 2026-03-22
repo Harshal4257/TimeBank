@@ -13,13 +13,16 @@ import {
     Save,
     Trash2,
     ShieldCheck,
-    Package
+    Package,
+    Camera,
+    MapPin,
+    Settings,
+    ArrowRight
 } from 'lucide-react';
 import API from '../services/api';
 import SeekerNavbar from '../components/SeekerNavbar';
 import PosterNavbar from '../components/PosterNavbar';
-
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 
 const Profile = () => {
     const { userId } = useParams();
@@ -56,6 +59,10 @@ const Profile = () => {
         fetchProfile();
     }, [userId]);
 
+    const handleEditProfile = () => {
+        setEditing(true);
+    };
+
     const handleUpdate = async (e) => {
         e.preventDefault();
         try {
@@ -70,6 +77,15 @@ const Profile = () => {
         } finally {
             setSaving(false);
         }
+    };
+
+    const handleCancelEdit = () => {
+        setFormData({
+            name: profile.name,
+            bio: profile.bio || '',
+            skills: profile.skills || []
+        });
+        setEditing(false);
     };
 
     const addSkill = () => {
@@ -91,8 +107,8 @@ const Profile = () => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-[#E6EEF2] flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+            <div className="min-h-screen bg-gradient-to-br from-secondary-50 via-white to-primary-50 flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
             </div>
         );
     }
@@ -100,201 +116,196 @@ const Profile = () => {
     const isPoster = profile?.role === 'Poster';
 
     return (
-        <div className="min-h-screen bg-[#E6EEF2]">
+        <div className="min-h-screen bg-gradient-to-br from-secondary-50 via-white to-primary-50">
+            {isPoster ? <PosterNavbar /> : <SeekerNavbar />}
 
-            <div className="max-w-4xl mx-auto px-6 py-10">
-
-                {/* Header Section */}
-                <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm mb-8 relative overflow-hidden">
-                    {/* Background Decoration */}
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50 rounded-full -mr-20 -mt-20 opacity-50"></div>
-
-                    <div className="relative flex flex-col md:flex-row items-center gap-8">
-                        <div className="relative">
-                            <div className="w-32 h-32 bg-emerald-600 rounded-3xl flex items-center justify-center text-white text-5xl font-black shadow-lg shadow-emerald-100 border-4 border-white">
-                                {profile.name.charAt(0)}
-                            </div>
-                            {!editing && !userId && (
-                                <button
-                                    onClick={() => setEditing(true)}
-                                    className="absolute -bottom-2 -right-2 p-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors shadow-lg"
-                                >
-                                    <Edit3 size={18} />
-                                </button>
-                            )}
+            <div className="max-w-4xl mx-auto px-4 py-8">
+                {/* Profile Card */}
+                <div className="bg-white rounded-3xl shadow-strong overflow-hidden animate-scale-in">
+                    
+                    {/* Banner */}
+                    <div className="relative h-48 bg-gradient-to-r from-primary-500 to-accent-500">
+                        <div className="absolute inset-0 bg-black/20"></div>
+                        {/* Banner Pattern Overlay */}
+                        <div className="absolute inset-0 opacity-10">
+                            <div className="h-full w-full bg-repeat" style={{
+                                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cpath d='M30 5l25 25v10l-25-25V5z' fill='white' fill-opacity='0.1'/%3E%3Cpath d='M5 30l25-25v10l-25 25V30z' fill='white' fill-opacity='0.1'/%3E%3C/g%3E%3C/svg%3E")`,
+                                backgroundSize: '60px 60px'
+                            }}></div>
                         </div>
+                    </div>
 
-                        <div className="flex-1 text-center md:text-left">
-                            <h1 className="text-3xl font-black text-slate-900 mb-1">{profile.name}</h1>
-                            <div className="flex flex-wrap justify-center md:justify-start gap-4 text-slate-500 font-medium mb-4">
-                                <span className="flex items-center gap-1.5"><Mail size={16} /> {profile.email}</span>
-                                <span className="flex items-center gap-1.5 px-2.5 py-0.5 bg-slate-100 rounded-full text-xs font-bold uppercase tracking-wider text-slate-600 border border-slate-200">
-                                    {profile.role}
-                                </span>
-                            </div>
-
-                            <div className="flex flex-wrap justify-center md:justify-start gap-3">
-                                <div className="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 flex items-center gap-2">
-                                    <Clock size={18} />
-                                    <span className="font-bold">{profile.credits} Time Credits</span>
-                                </div>
-                                <div className="px-4 py-2 bg-amber-50 text-amber-700 rounded-2xl border border-amber-100 flex items-center gap-2">
-                                    <Star size={18} className="fill-amber-500" />
-                                    <span className="font-bold">{profile.rating || 0} ({profile.numReviews || 0} reviews)</span>
+                    {/* Profile Picture */}
+                    <div className="relative px-8">
+                        <div className="absolute -top-16 left-1/2 transform -translate-x-1/2">
+                            <div className="relative group">
+                                <div className="w-32 h-32 rounded-full border-4 border-white shadow-strong overflow-hidden bg-secondary-100">
+                                    <div className="w-full h-full flex items-center justify-center">
+                                        <User size={48} className="text-secondary-400" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-                    {/* Main Info Column */}
-                    <div className="lg:col-span-2 space-y-8">
-                        {/* About Section */}
-                        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm transition-all">
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                                    <User className="text-emerald-600" size={24} />
-                                    Professional Bio
-                                </h2>
-                            </div>
-
+                    {/* Profile Content */}
+                    <div className="px-8 pb-8 pt-20">
+                        
+                        {/* Name and Title */}
+                        <div className="text-center mb-6">
                             {editing ? (
-                                <textarea
-                                    className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl h-40 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all outline-none"
-                                    placeholder="Tell the community about yourself, your experience, and why you're here..."
-                                    value={formData.bio}
-                                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                                <input
+                                    type="text"
+                                    value={formData.name}
+                                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                    className="text-3xl font-black text-center bg-transparent border-b-2 border-secondary-300 focus:border-primary-500 outline-none px-2 py-1 mb-2"
                                 />
                             ) : (
-                                <p className="text-slate-600 leading-relaxed italic">
-                                    {profile.bio || "No bio added yet. Add a bio to help others get to know you!"}
-                                </p>
+                                <h1 className="text-3xl font-black text-secondary-900">{profile.name}</h1>
+                            )}
+                            
+                            {editing ? (
+                                <input
+                                    type="text"
+                                    value={formData.title || ''}
+                                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                    className="text-lg text-center bg-transparent border-b-2 border-secondary-300 focus:border-primary-500 outline-none px-2 py-1"
+                                />
+                            ) : (
+                                <p className="text-lg text-secondary-600">{profile.title || 'Software Engineer'}</p>
                             )}
                         </div>
 
-                        {/* Skills Section */}
-                        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                                    <Award className="text-emerald-600" size={24} />
-                                    Skills & Expertise
-                                </h2>
-                            </div>
-
+                        {/* Location */}
+                        <div className="flex items-center justify-center gap-2 mb-8 text-secondary-600">
+                            <MapPin size={16} />
                             {editing ? (
-                                <div className="space-y-4">
-                                    <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={profile.location || ''}
+                                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                                    className="bg-transparent border-b border-secondary-300 focus:border-primary-500 outline-none px-2 py-1"
+                                />
+                            ) : (
+                                <span>{profile.location || 'Los Angeles, California'}</span>
+                            )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex justify-center gap-4 mb-8">
+                            {editing ? (
+                                <>
+                                    <button
+                                        onClick={handleUpdate}
+                                        disabled={saving}
+                                        className="btn-primary flex items-center gap-2"
+                                    >
+                                        {saving ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                Saving...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Save size={16} /> Save Profile
+                                            </>
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={handleCancelEdit}
+                                        className="btn-secondary flex items-center gap-2"
+                                    >
+                                        <X size={16} /> Cancel
+                                    </button>
+                                </>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={handleEditProfile}
+                                        className="bg-secondary-800 text-white px-6 py-3 rounded-xl font-semibold hover:bg-secondary-900 transition-all flex items-center gap-2"
+                                    >
+                                        <Edit3 size={16} /> Edit Profile
+                                    </button>
+                                    <Link
+                                        to="/settings"
+                                        className="border-2 border-secondary-300 text-secondary-700 px-6 py-3 rounded-xl font-semibold hover:bg-secondary-50 transition-all flex items-center gap-2"
+                                    >
+                                        <Settings size={16} /> Settings
+                                    </Link>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Current Role */}
+                        <div className="mb-8">
+                            <h3 className="text-lg font-semibold text-secondary-900 mb-4">Current role</h3>
+                            {editing ? (
+                                <input
+                                    type="text"
+                                    value={formData.role || ''}
+                                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                                    className="w-full bg-secondary-50 border border-secondary-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                />
+                            ) : (
+                                <p className="text-secondary-700 bg-secondary-50 rounded-xl px-4 py-3">{profile.role || 'Software Engineer'}</p>
+                            )}
+                        </div>
+
+                        {/* Skills */}
+                        <div className="mb-8">
+                            <h3 className="text-lg font-semibold text-secondary-900 mb-4">Skills</h3>
+                            <div className="flex flex-wrap gap-3">
+                                {(editing ? formData.skills : profile.skills).map((skill, index) => (
+                                    <span
+                                        key={index}
+                                        className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                                            editing 
+                                                ? 'bg-primary-100 text-primary-700 hover:bg-primary-200 cursor-pointer' 
+                                                : 'bg-secondary-100 text-secondary-700'
+                                        }`}
+                                        onClick={() => editing && removeSkill(skill)}
+                                    >
+                                        {skill}
+                                        {editing && (
+                                            <X size={14} className="ml-2" />
+                                        )}
+                                    </span>
+                                ))}
+                                
+                                {editing && (
+                                    <div className="flex items-center gap-2 mt-3">
                                         <input
                                             type="text"
-                                            className="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none"
-                                            placeholder="Add a new skill (e.g. Graphic Design)"
                                             value={newSkill}
                                             onChange={(e) => setNewSkill(e.target.value)}
-                                            onKeyPress={(e) => e.key === 'Enter' && addSkill()}
+                                            className="flex-1 bg-secondary-50 border border-secondary-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                            placeholder="Add new skill"
                                         />
                                         <button
-                                            type="button"
                                             onClick={addSkill}
-                                            className="p-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors"
+                                            className="px-4 py-2 rounded-full text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 transition-all flex items-center gap-1"
                                         >
-                                            <Plus size={24} />
+                                            <Plus size={14} /> Add Skill
                                         </button>
                                     </div>
-                                    <div className="flex flex-wrap gap-2 pt-2">
-                                        {formData.skills.map(skill => (
-                                            <span key={skill} className="px-3 py-1.5 bg-emerald-50 text-emerald-700 font-bold rounded-lg border border-emerald-100 flex items-center gap-2">
-                                                {skill}
-                                                <button onClick={() => removeSkill(skill)} className="hover:text-red-500 transition-colors">
-                                                    <Trash2 size={14} />
-                                                </button>
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Bio */}
+                        <div className="mb-8">
+                            <h3 className="text-lg font-semibold text-secondary-900 mb-4">About</h3>
+                            {editing ? (
+                                <textarea
+                                    value={formData.bio}
+                                    onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                                    className="w-full bg-secondary-50 border border-secondary-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                                    rows={4}
+                                    placeholder="Tell us about yourself, your experience, and why you're here..."
+                                />
                             ) : (
-                                <div className="flex flex-wrap gap-2">
-                                    {profile.skills?.length > 0 ? profile.skills.map(skill => (
-                                        <span key={skill} className="px-4 py-2 bg-slate-50 text-slate-700 font-bold rounded-xl border border-slate-200 shadow-sm">
-                                            {skill}
-                                        </span>
-                                    )) : (
-                                        <p className="text-slate-400 italic">No skills listed. Add some to get better matches!</p>
-                                    )}
-                                </div>
+                                <p className="text-secondary-600 bg-secondary-50 rounded-xl px-4 py-3">{profile.bio || 'Passionate software engineer with 5+ years of experience in web development and mobile applications.'}</p>
                             )}
-                        </div>
-
-                        {editing && (
-                            <div className="flex gap-4">
-                                <button
-                                    onClick={handleUpdate}
-                                    disabled={saving}
-                                    className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black text-lg hover:bg-emerald-700 shadow-lg shadow-emerald-100 flex items-center justify-center gap-2 transition-all"
-                                >
-                                    {saving ? "Saving..." : <><Save size={20} /> Save Profile Changes</>}
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setEditing(false);
-                                        setFormData({
-                                            name: profile.name,
-                                            bio: profile.bio || '',
-                                            skills: profile.skills || []
-                                        });
-                                    }}
-                                    className="px-8 py-4 bg-white border border-slate-200 text-slate-500 rounded-2xl font-bold hover:bg-slate-50 transition-all flex items-center gap-2"
-                                >
-                                    <X size={20} /> Cancel
-                                </button>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Sidebar Stats Column */}
-                    <div className="space-y-6">
-                        <div className="bg-slate-900 rounded-3xl p-8 text-white relative overflow-hidden group">
-                            <div className="absolute -top-10 -left-10 w-40 h-40 bg-emerald-500 rounded-full opacity-10 group-hover:scale-150 transition-transform duration-700"></div>
-                            <h3 className="text-xs font-bold uppercase tracking-widest text-emerald-400 mb-6 inline-block border-b border-emerald-900 pb-1">Account Verifier</h3>
-
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-emerald-600 flex items-center justify-center">
-                                        <ShieldCheck size={18} />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-slate-400 font-bold uppercase tracking-tighter">Status</p>
-                                        <p className="font-bold text-sm">Community Verified</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                                        <Package size={18} />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-slate-400 font-bold uppercase tracking-tighter">Impact</p>
-                                        <p className="font-bold text-sm">Help 12 Community Members</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="mt-8 p-4 bg-white/5 rounded-2xl border border-white/10">
-                                <p className="text-xs text-slate-400 leading-relaxed italic">
-                                    "TimeBank is more than skills; it's about building lasting connections through helpfulness."
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
-                            <h3 className="font-black text-slate-900 mb-4 uppercase text-xs tracking-widest">Community Badge</h3>
-                            <div className="flex flex-col items-center py-6 text-center">
-                                <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center border-4 border-amber-100 mb-3">
-                                    <Award className="text-amber-500" size={40} />
-                                </div>
-                                <p className="font-bold text-slate-900">Rising Star</p>
-                                <p className="text-xs text-slate-500 mt-1">Complete 5 tasks to reach the next level</p>
-                            </div>
                         </div>
                     </div>
 

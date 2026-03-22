@@ -81,6 +81,16 @@ const PosterJobDetail = () => {
 
   const handleJobAction = async (action) => {
     try {
+      if (action === 'delete') {
+        const confirmDelete = window.confirm("Are you sure you want to delete this job? This action cannot be undone and will remove all associated applications.");
+        if (!confirmDelete) return;
+        
+        await API.delete(`/jobs/${jobId}`);
+        alert('Job deleted successfully!');
+        navigate('/poster/dashboard');
+        return;
+      }
+      
       await API.put(`/jobs/${jobId}/status`, { status: action === 'close' ? 'Closed' : 'Open' });
       fetchJobDetails(); // Refresh data
     } catch (err) {

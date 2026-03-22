@@ -10,9 +10,12 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('token');
     const role = localStorage.getItem('role'); // Simplified to 'role'
     const email = localStorage.getItem('email');
+    const name = localStorage.getItem('name');
+
+    console.log('AuthContext - Loading from localStorage:', { token, role, email, name });
 
     if (token) {
-      setUser({ token, role, email });
+      setUser({ token, role, email, name });
     }
     setLoading(false);
   }, []);
@@ -22,10 +25,12 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', userData.token);
     localStorage.setItem('role', userData.role);
     localStorage.setItem('email', userData.email);
+    localStorage.setItem('name', userData.name || userData.firstName || userData.username || '');
     setUser({
       token: userData.token,
       role: userData.role,
-      email: userData.email
+      email: userData.email,
+      name: userData.name || userData.firstName || userData.username || ''
     });
   };
 
@@ -33,6 +38,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('role');
     localStorage.removeItem('email');
+    localStorage.removeItem('name');
     setUser(null);
     // Optional: window.location.href = "/login"; // Force a clean slate
   };

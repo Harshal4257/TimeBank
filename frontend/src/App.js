@@ -9,6 +9,7 @@ import RegisterChoice from './pages/RegisterChoice';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import Marketplace from './pages/Marketplace';
 import SeekerHomePage from './pages/SeekerHomePage';
@@ -17,6 +18,8 @@ import PosterJobDetail from './pages/PosterJobDetail';
 import SeekerJobDetail from './pages/SeekerJobDetail';
 import PosterApplicants from './pages/PosterApplicants';
 import Profile from './pages/Profile';
+import SeekerProfile from './pages/SeekerProfile';
+import PosterProfile from './pages/PosterProfile';
 import PostJob from './pages/PostJob';
 import PostTask from './pages/PostTask';
 import SeekerApplications from './pages/SeekerApplications';
@@ -69,6 +72,7 @@ function AppContent() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/register-choice" element={<RegisterChoice />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* Unified Dashboard Route */}
         <Route
@@ -91,11 +95,11 @@ function AppContent() {
         />
         <Route
           path="/seeker/profile/:userId?"
-          element={isAuthenticated ? <Profile /> : <Navigate to="/login" />}
+          element={isAuthenticated ? <SeekerProfile /> : <Navigate to="/login" />}
         />
         <Route
           path="/profile/:userId?"
-          element={isAuthenticated ? <Profile /> : <Navigate to="/login" />}
+          element={isAuthenticated ? <SeekerProfile /> : <Navigate to="/login" />}
         />
 
         {/* POSTER ROUTES */}
@@ -134,6 +138,10 @@ function AppContent() {
         <Route
           path="/poster/job/:id/edit"
           element={isAuthenticated ? <PosterPostJob /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/poster/profile/:userId?"
+          element={isAuthenticated ? <PosterProfile /> : <Navigate to="/login" />}
         />
 
         <Route path="/post-task" element={<PostTask />} />
