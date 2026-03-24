@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { User, MapPin, Briefcase, Settings, Edit, ArrowRight, Share, Plus, X, Camera } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import API from '../services/api';
 
 const SeekerProfile = () => {
   const { user } = React.useContext(AuthContext);
@@ -15,11 +16,11 @@ const SeekerProfile = () => {
   const [profileData, setProfileData] = useState({
     name: '',
     email: '',
-    title: 'Software Engineer',
-    location: 'Los Angeles, California',
-    role: 'Software Engineer',
-    skills: ['HTML', 'CSS', 'Dart', 'C++', 'UI Design'],
-    bio: 'Passionate software engineer with 5+ years of experience in web development and mobile applications.',
+    title: '',
+    location: '',
+    role: '',
+    skills: [],
+    bio: '',
     readyForWork: true,
     profilePicture: null
   });
@@ -27,87 +28,45 @@ const SeekerProfile = () => {
   const [tempProfileData, setTempProfileData] = useState({ ...profileData });
 
   useEffect(() => {
-    // Load user data from context or API
-    console.log('SeekerProfile - useEffect triggered, user:', user);
-    console.log('SeekerProfile - user.skills:', user?.skills);
-    console.log('SeekerProfile - user.email:', user?.email);
-    console.log('SeekerProfile - user.name:', user?.name);
-    
-    // Also check localStorage directly as a fallback
-    const storedName = localStorage.getItem('name');
-    const storedEmail = localStorage.getItem('email');
-    const storedProfile = localStorage.getItem('seekerProfile'); // Use seeker-specific key
-    
-    console.log('SeekerProfile - localStorage data:', { storedName, storedEmail, storedProfile });
-    
-    if (user) {
-      // Try to load saved profile from localStorage first
-      let profileToUse = { ...profileData };
-      
-      if (storedProfile) {
-        try {
-          const savedProfile = JSON.parse(storedProfile);
-          profileToUse = { ...profileToUse, ...savedProfile };
-          console.log('SeekerProfile - Using saved profile from localStorage:', savedProfile);
-          console.log('SeekerProfile - savedProfile.skills:', savedProfile.skills);
-        } catch (error) {
-          console.log('SeekerProfile - Error parsing saved profile:', error);
-        }
-      }
-      
-      // Fetch current user data from database
-      const fetchUserProfile = async () => {
-        try {
-          // TODO: Replace with actual API call
-          // const response = await API.get('/users/profile');
-          // const databaseUserData = response.data;
-          
-          // Mock database data for testing
-          const databaseUserData = {
-            name: user.name || storedName || 'Database User',
-            email: user.email || storedEmail || 'database@example.com',
-            skills: ['Database Skill 1', 'Database Skill 2', 'Database Skill 3'],
-            title: 'Database Title',
-            bio: 'Database bio from backend'
-          };
-          
-          console.log('SeekerProfile - Fetched from database:', databaseUserData);
-          
-          profileToUse = { ...profileToUse, ...databaseUserData };
-          console.log('SeekerProfile - Combined profile data:', profileToUse);
-          
-        } catch (error) {
-          console.log('SeekerProfile - Error fetching user profile:', error);
-        }
-      };
-      
-      // Call the fetch function
-      fetchUserProfile();
-      
-      // Always use name directly as display name, fallback to email if name not available
-      const displayName = user.name || storedName || user.email || storedEmail || profileToUse.email || 'No Name';
-      console.log('SeekerProfile - displayName:', displayName);
-      
-      const finalSkills = user?.skills || profileToUse.skills || databaseUserData?.skills || ['HTML', 'CSS', 'Dart', 'C++', 'UI Design'];
-      console.log('SeekerProfile - user.skills:', user?.skills);
-      console.log('SeekerProfile - profileToUse.skills:', profileToUse.skills);
-      console.log('SeekerProfile - databaseUserData.skills:', databaseUserData?.skills);
-      console.log('SeekerProfile - finalSkills:', finalSkills);
-      console.log('SeekerProfile - FORCING database user skills, ignoring AuthContext skills');
-      
-      setProfileData(prev => ({
-        ...profileToUse,
-        name: displayName,
-        email: user.email || storedEmail || profileToUse.email || '',
-        title: user.title || profileToUse.title || 'Software Engineer',
-        location: user.location || profileToUse.location || 'Los Angeles, California',
-        role: user.role || profileToUse.role || 'Software Engineer',
-        skills: finalSkills,
-        bio: user.bio || profileToUse.bio || 'Passionate software engineer with 5+ years of experience in web development and mobile applications.'
-      }));
-    } else {
+    if (!user) {
       console.log('SeekerProfile - No user data available');
+      return;
     }
+
+    // Set minimal profile Data from AuthContext first for instant UI response
+    setProfileData(prev => ({
+      ...prev,
+      name: user.name || localStorage.getItem('name') || prev.name,
+      email: user.email || localStorage.getItem('email') || prev.email,
+      skills: user.skills && user.skills.length > 0 ? user.skills : prev.skills
+    }));
+
+    // Perform an asynchronous DB fetch to ensure absolute newest fields
+    const fetchUserProfile = async () => {
+      try {
+        // Cache-busting URL parameter prevents browser from sticking to old, empty profile data during SPA navigation
+        const response = await API.get(`/users/profile?_t=${new Date().getTime()}`);
+        const dbData = response.data;
+        
+        // Use dbData exclusively over previous fields, as DB is single source of truth!
+        setProfileData(prev => ({
+          ...prev,
+          name: dbData.name || prev.name,
+          email: dbData.email || prev.email,
+          title: dbData.currentRole || prev.title,
+          location: dbData.location || prev.location,
+          role: dbData.role || prev.role,
+          skills: dbData.skills || prev.skills, // Use exact skills array mapping
+          bio: dbData.bio || prev.bio,
+          profilePicture: dbData.avatarUrl || prev.profilePicture
+        }));
+      } catch (error) {
+        console.error('SeekerProfile - Error fetching fresh user profile:', error);
+      }
+    };
+    
+    fetchUserProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const handleEditProfile = () => {
