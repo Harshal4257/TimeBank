@@ -14,6 +14,7 @@ const jobSchema = new mongoose.Schema({
     workLocation: { type: String, required: false },
     deadline: { type: Date, required: false },
     hourlyRate: { type: Number, required: true },
+    credits: { type: Number, required: true, default: 0 }, 
     poster: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     status: { type: String, default: 'active' },
     createdAt: { type: Date, default: Date.now }

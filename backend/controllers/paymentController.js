@@ -21,11 +21,12 @@ const createOrder = async (req, res) => {
             return res.status(404).json({ message: 'Application not found' });
         }
 
-        if (application.jobId.postedBy.toString() !== req.user._id.toString()) {
+        if (application.jobId.poster.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: 'Not authorized' });
         }
 
-        const amountInPaise = application.jobId.credits * 100;
+        // ✅ New
+        const amountInPaise = application.jobId.hourlyRate * application.jobId.hours * 100;
 
         const order = await razorpay.orders.create({
             amount: amountInPaise,
@@ -38,7 +39,8 @@ const createOrder = async (req, res) => {
             applicationId: application._id,
             posterId: req.user._id,
             seekerId: application.seekerId._id,
-            amount: application.jobId.credits,
+            // ✅ New
+            amount: application.jobId.hourlyRate * application.jobId.hours,
             razorpayOrderId: order.id,
             status: 'created'
         });

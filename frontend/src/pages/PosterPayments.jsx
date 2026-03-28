@@ -76,7 +76,8 @@ const PosterPayments = () => {
                                     <div>
                                         <h4 className="font-bold text-slate-900">{app.jobId?.title}</h4>
                                         <p className="text-sm text-slate-500">Seeker: {app.seekerId?.name}</p>
-                                        <p className="text-sm text-emerald-600 font-bold">₹{app.jobId?.credits}</p>
+                                        {/* ✅ New */}
+                                        <p className="text-sm text-emerald-600 font-bold">₹{app.jobId?.hourlyRate * app.jobId?.hours}</p>
                                     </div>
                                     <button
                                         onClick={() => handlePayment(app._id)}

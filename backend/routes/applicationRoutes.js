@@ -19,7 +19,7 @@ router.get('/my-accepted', protect, async (req, res) => {
         const applications = await Application.find({ status: 'accepted' })
             .populate({
                 path: 'jobId',
-                match: { postedBy: req.user._id }
+                match: { poster: req.user._id } // ← changed postedBy to poster
             })
             .populate('seekerId', 'name email');
 
@@ -29,7 +29,6 @@ router.get('/my-accepted', protect, async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch applications' });
     }
 });
-
 // Route to apply for a job (Seeker only)
 router.post('/apply/:jobId', protect, applyForJob);
 
