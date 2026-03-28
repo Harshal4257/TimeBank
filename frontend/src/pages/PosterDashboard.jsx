@@ -55,6 +55,12 @@ const PosterDashboard = () => {
     </div>
   );
 
+ if (loading) return (
+    <div className="min-h-screen bg-[#E6EEF2] flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+    </div>
+);
+
   return (
     <div className="min-h-screen bg-[#E6EEF2] pb-20">
       <div className="max-w-7xl mx-auto px-6 py-8">
@@ -69,7 +75,7 @@ const PosterDashboard = () => {
           <Link to="/poster/applicants" className="block transform hover:scale-[1.02] transition-transform">
             <StatCard icon={Users} title="Applicants" value={dashboardStats.totalApplicants} color="bg-purple-600" />
           </Link>
-          <StatCard icon={DollarSign} title="Earnings" value={`$${dashboardStats.totalEarnings}`} color="bg-orange-600" />
+          <StatCard icon={DollarSign} title="Earnings" value={`₹${dashboardStats.totalEarnings}`} color="bg-orange-600" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -78,7 +84,7 @@ const PosterDashboard = () => {
               <h3 className="text-lg font-bold text-slate-900 mb-2">{job.title}</h3>
               <p className="text-sm text-slate-500 mb-4 line-clamp-2">{job.description}</p>
               <div className="flex justify-between items-center mt-auto pt-4 border-t border-slate-50">
-                <span className="text-emerald-600 font-bold">${job.hourlyRate}/hr</span>
+                <span className="text-emerald-600 font-bold">₹{job.hourlyRate}/hr</span>
                 <Link
                   to={`/poster/job/${job._id}`}
                   className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-bold hover:bg-slate-200 transition-colors"

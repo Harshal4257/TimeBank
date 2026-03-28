@@ -145,7 +145,7 @@ const PosterApplicants = () => {
                                                 <span className="font-bold text-slate-700">{app.jobId?.title || 'Job Deleted'}</span>
                                             </div>
                                             <p className="text-[10px] text-slate-400 mt-1 font-bold italic">
-                                                Applied {new Date(app.createdAt).toLocaleDateString()}
+                                               Applied {app.appliedAt ? new Date(app.appliedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
                                             </p>
                                         </td>
                                         <td className="px-8 py-6 text-center">

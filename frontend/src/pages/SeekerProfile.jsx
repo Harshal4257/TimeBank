@@ -74,33 +74,50 @@ const SeekerProfile = () => {
     setShowEditForm(true);
   };
 
-  const handleSaveProfile = () => {
-    // Update local state
-    setProfileData({ ...tempProfileData });
-    setShowEditForm(false);
-    
-    // Save to seeker-specific localStorage key
-    localStorage.setItem('seekerProfile', JSON.stringify(tempProfileData));
-    
-    // TODO: Save to backend API
-    console.log('SeekerProfile - Profile saved:', tempProfileData);
-  };
+  const handleSaveProfile = async () => {
+    try {
+        await API.put('/users/profile', {
+            name: tempProfileData.name,
+            bio: tempProfileData.bio,
+            location: tempProfileData.location,
+            currentRole: tempProfileData.title,
+            skills: tempProfileData.skills,
+        });
+        setProfileData({ ...tempProfileData });
+        setShowEditForm(false);
+        alert('Profile updated successfully!');
+    } catch (error) {
+        console.error('Error saving profile:', error);
+        alert('Failed to save profile. Please try again.');
+    }
+};
 
   const handleCancelEdit = () => {
     setTempProfileData({ ...profileData });
     setShowEditForm(false);
   };
 
-  const handleImageUpload = (e) => {
+  // ✅ Fix — uploads to backend
+const handleImageUpload = async (e) => {
     const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setTempProfileData(prev => ({ ...prev, profilePicture: reader.result }));
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    
+    try {
+        const formData = new FormData();
+        formData.append('photo', file);
+        const res = await API.post('/users/profile/photo', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        setTempProfileData(prev => ({ 
+            ...prev, 
+            profilePicture: res.data.avatarUrl 
+        }));
+        alert('Photo uploaded successfully!');
+    } catch (error) {
+        console.error('Error uploading photo:', error);
+        alert('Failed to upload photo.');
     }
-  };
+};
 
   const handleSkillToggle = (skill) => {
     if (isEditing) {

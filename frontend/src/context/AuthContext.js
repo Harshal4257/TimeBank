@@ -8,30 +8,38 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role'); // Simplified to 'role'
+    const role = localStorage.getItem('role');
     const email = localStorage.getItem('email');
     const name = localStorage.getItem('name');
-
-    console.log('AuthContext - Loading from localStorage:', { token, role, email, name });
+    const credits = localStorage.getItem('credits');
+    const userId = localStorage.getItem('userId');
 
     if (token) {
-      setUser({ token, role, email, name });
+      setUser({ token, role, email, name, credits: Number(credits) || 0, userId });
     }
     setLoading(false);
   }, []);
 
   const login = (userData) => {
-    // Standardize your keys!
     localStorage.setItem('token', userData.token);
     localStorage.setItem('role', userData.role);
     localStorage.setItem('email', userData.email);
     localStorage.setItem('name', userData.name || userData.firstName || userData.username || '');
+    localStorage.setItem('credits', userData.credits || 0);
+    localStorage.setItem('userId', userData._id || userData.userId || '');
     setUser({
       token: userData.token,
       role: userData.role,
       email: userData.email,
-      name: userData.name || userData.firstName || userData.username || ''
+      name: userData.name || userData.firstName || userData.username || '',
+      credits: userData.credits || 0,
+      userId: userData._id || userData.userId || ''
     });
+  };
+
+  const updateCredits = (newCredits) => {
+    localStorage.setItem('credits', newCredits);
+    setUser(prev => ({ ...prev, credits: newCredits }));
   };
 
   const logout = () => {
@@ -39,12 +47,13 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('role');
     localStorage.removeItem('email');
     localStorage.removeItem('name');
+    localStorage.removeItem('credits');
+    localStorage.removeItem('userId');
     setUser(null);
-    // Optional: window.location.href = "/login"; // Force a clean slate
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, isAuthenticated: !!user, updateCredits }}>
       {!loading && children}
     </AuthContext.Provider>
   );

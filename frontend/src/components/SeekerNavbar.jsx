@@ -82,7 +82,7 @@ const SeekerNavbar = () => {
           {/* Notifications Dropdown */}
           <div className="relative">
             <button
-              onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+              onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
               className="relative p-2 text-secondary-600 hover:text-primary-600 rounded-xl hover:bg-primary-50 transition-all"
             >
               <Bell size={18} />
@@ -164,7 +164,7 @@ const SeekerNavbar = () => {
                     <Clock size={14} /> Balance
                   </div>
                   <div className="text-primary-600 font-semibold text-lg">
-                    30.0 <span className="text-xs">Credits</span>
+                    {user?.credits ?? 30} <span className="text-xs">Credits</span>
                   </div>
                 </div>
 
@@ -234,7 +234,7 @@ const SeekerNavbar = () => {
 
         {/* Mobile Menu Button */}
         <button
-          onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+          onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
           className="lg:hidden p-2 rounded-xl hover:bg-secondary-50 transition-colors relative"
         >
           <Bell size={20} />

@@ -181,7 +181,7 @@ const PosterJobDetail = () => {
       {/* Applied Date */}
       <div className="mb-4">
         <p className="text-sm text-slate-600">
-          Applied on {new Date(applicant.appliedDate).toLocaleDateString()}
+          Applied on {applicant.appliedDate ? new Date(applicant.appliedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
         </p>
       </div>
 
@@ -319,11 +319,11 @@ const PosterJobDetail = () => {
                 </div>
                 <div>
                   <h4 className="font-medium text-slate-900 mb-2">Total Hours Required</h4>
-                  <p className="text-slate-600">{job.totalHours} hours</p>
+                  <p className="text-slate-600">{job.hours} hours</p>
                 </div>
                 <div>
                   <h4 className="font-medium text-slate-900 mb-2">Deadline</h4>
-                  <p className="text-slate-600">{new Date(job.deadline).toLocaleDateString()}</p>
+                  <p className="text-slate-600">{job.deadline ? new Date(job.deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'No deadline set'}</p>
                 </div>
                 <div>
                   <h4 className="font-medium text-slate-900 mb-2">Posted Date</h4>
@@ -335,7 +335,7 @@ const PosterJobDetail = () => {
               <div>
                 <h4 className="font-medium text-slate-900 mb-3">Skills Required</h4>
                 <div className="flex flex-wrap gap-2">
-                  {job.skills?.map((skill, index) => (
+                  {job.requiredSkills?.map((skill, index) => (
                     <span key={index} className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-medium">
                       {skill}
                     </span>

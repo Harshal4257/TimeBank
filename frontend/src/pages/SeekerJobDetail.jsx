@@ -99,10 +99,10 @@ const SeekerJobDetail = () => {
     );
   }
 
-  const postedDate = job.createdAt ? new Date(job.createdAt).toLocaleDateString() : 'Recently';
+ const postedDate = job.createdAt ? new Date(job.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently';
 
   const appStatus = application?.status || null;
-  const isCompleted = appStatus === 'Completed';
+  const isCompleted = appStatus?.toLowerCase() === 'completed';
   const isApplied = !!application && !isCompleted;
 
   return (

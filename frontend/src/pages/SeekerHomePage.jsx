@@ -16,7 +16,8 @@ const SeekerHomePage = () => {
   useEffect(() => {
     fetchMatchingJobs();
     fetchAppliedJobs();
-  }, []);
+    fetchSavedJobs();
+}, []);
 
   const fetchMatchingJobs = async () => {
     try {
@@ -32,6 +33,16 @@ const SeekerHomePage = () => {
       setLoading(false);
     }
   };
+
+  const fetchSavedJobs = async () => {
+    try {
+        const res = await API.get('/jobs/saved');
+        const savedIds = res.data.map(job => job._id);
+        setSavedJobs(savedIds);
+    } catch (err) {
+        console.error('Error fetching saved jobs:', err);
+    }
+};
 
   const fetchAppliedJobs = async () => {
     try {
@@ -53,7 +64,7 @@ const SeekerHomePage = () => {
     try {
       if (savedJobs.includes(jobId)) {
         // Remove from saved
-        await API.delete(`/jobs/save/${jobId}`);
+        await API.delete(`/jobs/unsave/${jobId}`);
         setSavedJobs(savedJobs.filter(id => id !== jobId));
       } else {
         // Save job

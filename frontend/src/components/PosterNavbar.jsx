@@ -15,11 +15,12 @@ import {
   Bell,
   Check,
   Menu,
-  X
+  X,
+  Settings
 } from 'lucide-react';
 
 const PosterNavbar = () => {
-  const { logout } = useContext(AuthContext);
+  const { logout, user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -165,12 +166,12 @@ const PosterNavbar = () => {
               <div className="absolute right-0 top-full mt-2 w-72 bg-white rounded-2xl shadow-strong border border-secondary-100 py-4 overflow-hidden z-[60] animate-slide-down">
                 <div className="px-6 pb-4 border-b border-secondary-100 flex items-center gap-3">
                   <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center text-white text-lg font-semibold">
-                    P
+                    {user?.name?.charAt(0).toUpperCase() || 'P'}
                   </div>
                   <div>
-                    <p className="font-semibold text-secondary-900">TimeBank Poster</p>
+                    <p className="font-semibold text-secondary-900">{user?.name || 'Poster'}</p>
                     <p className="text-xs bg-secondary-100 px-2 py-1 rounded-lg font-medium text-secondary-600 mt-1">
-                      Premium Poster
+                      {user?.email || ''}
                     </p>
                   </div>
                 </div>
@@ -189,7 +190,7 @@ const PosterNavbar = () => {
                     className="flex items-center gap-3 px-3 py-2 text-secondary-600 hover:bg-secondary-50 rounded-xl transition-all"
                     onClick={() => setIsProfileDropdownOpen(false)}
                   >
-                    <LogOut size={16} className="rotate-180" />
+                    <Settings size={16} />
                     <p className="text-sm font-medium">Settings</p>
                   </Link>
                 </div>

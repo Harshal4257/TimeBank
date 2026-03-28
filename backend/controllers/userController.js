@@ -33,7 +33,8 @@ const registerUser = async (req, res) => {
                     name: user.name,
                     email: user.email,
                     role: user.role,
-                    skills: user.skills || []
+                    skills: user.skills || [],
+                    credits: user.credits || 0  // ← add this
                 }
             });
         }
@@ -56,7 +57,8 @@ const loginUser = async (req, res) => {
                     name: user.name,
                     email: user.email,
                     role: user.role,
-                    skills: user.skills || []
+                    skills: user.skills || [],
+                    credits: user.credits || 0  // ← add this
                 }
             });
         } else {

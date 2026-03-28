@@ -9,28 +9,18 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useContext(AuthContext);
 
-  const handleSubmit = async (e) => {
+  // ✅ Fixed — uses AuthContext, saves credits & _id
+const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
       const { data } = await API.post('/users/login', { email, password });
-
-      console.log('Login - Response from backend:', data);
-      console.log('Login - User data:', data.user);
-
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('role', data.user?.role || 'Seeker');
-      localStorage.setItem('email', data.user?.email);
-      localStorage.setItem('name', data.user?.name);
-
-      console.log('Login - Stored in localStorage:', {
-        token: data.token,
-        role: data.user?.role || 'Seeker',
-        email: data.user?.email,
-        name: data.user?.name
-      });
+      
+      // Use AuthContext login to save everything properly
+      login(data.user ? { ...data.user, token: data.token } : data);
 
       const userRole = data.user?.role || 'Seeker';
       if (userRole === 'Seeker') {
@@ -41,11 +31,10 @@ const Login = () => {
     } catch (error) {
       const errorMessage = error.response?.data?.message || "Login failed. Check your connection or credentials.";
       alert(errorMessage);
-      console.error("Login Error:", error);
     } finally {
       setIsLoading(false);
     }
-  };
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 via-white to-secondary-50 p-4 font-sans">

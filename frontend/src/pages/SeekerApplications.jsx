@@ -103,7 +103,7 @@ const SeekerApplications = () => {
                                                 </div>
                                                 <div className="flex items-center gap-1">
                                                     <Clock size={16} className="text-slate-400" />
-                                                    Applied {new Date(app.appliedAt).toLocaleDateString()}
+                                                    Applied {app.appliedAt ? new Date(app.appliedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
                                                 </div>
                                             </div>
                                         )}
