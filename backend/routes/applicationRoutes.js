@@ -36,4 +36,21 @@ router.put('/:id/complete', protect, completeJob);
 // Route to accept or reject an application (Poster only)
 router.put('/:id/:action', protect, updateApplicationStatus);
 
+router.get('/my-accepted', protect, async (req, res) => {
+    try {
+        const Application = require('../models/Application');
+        const applications = await Application.find({ status: 'accepted' })
+            .populate({
+                path: 'jobId',
+                match: { postedBy: req.user._id }
+            })
+            .populate('seekerId', 'name email');
+
+        const filtered = applications.filter(app => app.jobId !== null);
+        res.json(filtered);
+    } catch (err) {
+        res.status(500).json({ message: 'Failed to fetch applications' });
+    }
+});
+
 module.exports = router;

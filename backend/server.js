@@ -39,6 +39,7 @@ app.use('/api/applications', applicationRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/payments', require('./routes/paymentRoutes'));
 // REMOVED: app.use('/api/tasks', taskRoutes);
 
 // Basic Route for Testing
