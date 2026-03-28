@@ -22,7 +22,7 @@ const app = express();
 app.use(cors({
   origin: [
     "http://localhost:3000",
-    process.env.FRONTEND_URL  // ← reads from env variable
+    "https://timebank-frontend-nu.vercel.app"  // ← reads from env variable
   ],
   credentials: true
 }));
