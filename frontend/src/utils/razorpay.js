@@ -11,6 +11,45 @@ export const initiatePayment = async (applicationId, onSuccess) => {
             name: 'TimeBank',
             description: `Payment for: ${data.jobTitle}`,
             order_id: data.orderId,
+
+            // ✅ Enable all payment methods including UPI & QR
+            method: {
+                upi: true,
+                card: true,
+                netbanking: true,
+                wallet: true,
+                qr: true,
+            },
+
+            config: {
+                display: {
+                    blocks: {
+                        upi: {
+                            name: 'Pay via UPI',
+                            instruments: [
+                                { method: 'upi', flows: ['qr', 'intent', 'collect'] }
+                            ]
+                        },
+                        card: {
+                            name: 'Pay via Card',
+                            instruments: [
+                                { method: 'card' }
+                            ]
+                        },
+                        netbanking: {
+                            name: 'Pay via Netbanking',
+                            instruments: [
+                                { method: 'netbanking' }
+                            ]
+                        },
+                    },
+                    sequence: ['block.upi', 'block.card', 'block.netbanking'],
+                    preferences: {
+                        show_default_blocks: true
+                    }
+                }
+            },
+
             handler: async function (response) {
                 await API.post('/payments/verify', {
                     razorpayOrderId: response.razorpay_order_id,
@@ -22,15 +61,24 @@ export const initiatePayment = async (applicationId, onSuccess) => {
                 alert('Payment successful! Credits transferred to seeker.');
                 onSuccess();
             },
+
             prefill: {
                 name: 'TimeBank User',
+                email: '',
+                contact: ''
             },
+
             theme: {
                 color: '#059669'
             }
         };
 
         const rzp = new window.Razorpay(options);
+
+        rzp.on('payment.failed', function (response) {
+            alert('Payment failed: ' + response.error.description);
+        });
+
         rzp.open();
 
     } catch (error) {
