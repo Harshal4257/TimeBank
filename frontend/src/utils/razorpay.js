@@ -12,40 +12,53 @@ export const initiatePayment = async (applicationId, onSuccess) => {
             description: `Payment for: ${data.jobTitle}`,
             order_id: data.orderId,
 
-            // ✅ Enable all payment methods including UPI & QR
-            method: {
-                upi: true,
-                card: true,
-                netbanking: true,
-                wallet: true,
-                qr: true,
-            },
-
             config: {
                 display: {
                     blocks: {
-                        upi: {
-                            name: 'Pay via UPI',
-                            instruments: [
-                                { method: 'upi', flows: ['qr', 'intent', 'collect'] }
-                            ]
-                        },
-                        card: {
-                            name: 'Pay via Card',
+                        cards: {
+                            name: 'Cards',
                             instruments: [
                                 { method: 'card' }
                             ]
                         },
                         netbanking: {
-                            name: 'Pay via Netbanking',
+                            name: 'Netbanking',
                             instruments: [
                                 { method: 'netbanking' }
                             ]
                         },
+                        upi: {
+                            name: 'UPI',
+                            instruments: [
+                                {
+                                    method: 'upi',
+                                    flows: ['qr', 'collect', 'intent']
+                                }
+                            ]
+                        },
+                        wallets: {
+                            name: 'Wallet',
+                            instruments: [
+                                { method: 'wallet' }
+                            ]
+                        },
+                        paylater: {
+                            name: 'Pay Later',
+                            instruments: [
+                                { method: 'paylater' }
+                            ]
+                        },
                     },
-                    sequence: ['block.upi', 'block.card', 'block.netbanking'],
+                    // ✅ Exact order you want
+                    sequence: [
+                        'block.cards',
+                        'block.netbanking',
+                        'block.upi',
+                        'block.wallets',
+                        'block.paylater'
+                    ],
                     preferences: {
-                        show_default_blocks: true
+                        show_default_blocks: false // ❌ Hides Recommended, Pay via Card, Pay via Netbanking
                     }
                 }
             },
