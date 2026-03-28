@@ -1,7 +1,8 @@
 import axios from 'axios';
 
+// This checks if a live URL exists; otherwise, it defaults to localhost
 const API = axios.create({
-  baseURL: 'http://localhost:5000/api', 
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api', 
 });
 
 // Interceptor to attach the token to every request dynamically
@@ -9,7 +10,6 @@ API.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
     if (token) {
-      // Ensure we use the latest token from storage
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -19,13 +19,13 @@ API.interceptors.request.use(
   }
 );
 
-// Optional: Add a response interceptor to handle expired tokens
+// Response interceptor to handle expired tokens
 API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // If the token is invalid or expired, clear it and redirect to login
       localStorage.removeItem('token');
+      localStorage.removeItem('role'); // Clear other items too
       window.location.href = '/login';
     }
     return Promise.reject(error);

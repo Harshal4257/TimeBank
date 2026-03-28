@@ -20,7 +20,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: ["http://localhost:3000", "https://your-project-name.vercel.app"], // Allow your React app
+  origin: ["http://localhost:3000", "https://time-bank-ten.vercel.app"], // Allow your React app
   credentials: true
 }));
 app.use(express.json());
