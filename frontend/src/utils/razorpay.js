@@ -12,55 +12,14 @@ export const initiatePayment = async (applicationId, onSuccess) => {
             description: `Payment for: ${data.jobTitle}`,
             order_id: data.orderId,
 
-            config: {
-                display: {
-                    blocks: {
-                        cards: {
-                            name: 'Cards',
-                            instruments: [
-                                { method: 'card' }
-                            ]
-                        },
-                        netbanking: {
-                            name: 'Netbanking',
-                            instruments: [
-                                { method: 'netbanking' }
-                            ]
-                        },
-                        upi: {
-                            name: 'UPI',
-                            instruments: [
-                                {
-                                    method: 'upi',
-                                    flows: ['qr', 'collect', 'intent']
-                                }
-                            ]
-                        },
-                        wallets: {
-                            name: 'Wallet',
-                            instruments: [
-                                { method: 'wallet' }
-                            ]
-                        },
-                        paylater: {
-                            name: 'Pay Later',
-                            instruments: [
-                                { method: 'paylater' }
-                            ]
-                        },
-                    },
-                    // ✅ Exact order you want
-                    sequence: [
-                        'block.cards',
-                        'block.netbanking',
-                        'block.upi',
-                        'block.wallets',
-                        'block.paylater'
-                    ],
-                    preferences: {
-                        show_default_blocks: false // ❌ Hides Recommended, Pay via Card, Pay via Netbanking
-                    }
-                }
+            // ✅ Just enable methods — let Razorpay handle the UI with icons
+            method: {
+                card: true,
+                netbanking: true,
+                upi: true,
+                wallet: true,
+                paylater: true,
+                emi: false,
             },
 
             handler: async function (response) {
