@@ -76,7 +76,6 @@ const PosterPayments = () => {
                                     <div>
                                         <h4 className="font-bold text-slate-900">{app.jobId?.title}</h4>
                                         <p className="text-sm text-slate-500">Seeker: {app.seekerId?.name}</p>
-                                        {/* ✅ New */}
                                         <p className="text-sm text-emerald-600 font-bold">₹{app.jobId?.hourlyRate * app.jobId?.hours}</p>
                                     </div>
                                     <button
@@ -104,7 +103,7 @@ const PosterPayments = () => {
                         ) : transactions.map(t => (
                             <div key={t._id} className="p-6 flex items-center justify-between hover:bg-slate-50/50">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center">
+                                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${t.status === 'paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
                                         <ArrowUpRight size={24} />
                                     </div>
                                     <div>
@@ -114,8 +113,11 @@ const PosterPayments = () => {
                                 </div>
                                 <div className="text-right">
                                     <p className="font-black text-lg text-slate-900">-₹{t.amount}</p>
-                                    <span className={`text-[10px] font-black uppercase tracking-widest ${t.status === 'paid' ? 'text-blue-500' : 'text-yellow-500'}`}>
-                                        {t.status}
+                                    {/* ✅ show 'failed' for created, correct colors */}
+                                    <span className={`text-[10px] font-black uppercase tracking-widest ${
+                                        t.status === 'paid' ? 'text-blue-500' : 'text-red-500'
+                                    }`}>
+                                        {t.status === 'created' ? 'failed' : t.status}
                                     </span>
                                 </div>
                             </div>
