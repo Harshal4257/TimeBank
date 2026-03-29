@@ -80,9 +80,27 @@ const getPosterJobs = async (req, res) => {
 // @desc    Get all jobs (Generic feed)
 const getJobs = async (req, res) => {
     try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 12;
+        const skip = (page - 1) * limit;
+
         const query = req.user ? { poster: { $ne: req.user.id } } : {};
-        const jobs = await Job.find(query).populate('poster', 'name email rating numReviews');
-        res.json(jobs);
+        
+        const [jobs, total] = await Promise.all([
+            Job.find(query)
+                .populate('poster', 'name email rating numReviews')
+                .skip(skip)
+                .limit(limit)
+                .sort({ createdAt: -1 }),
+            Job.countDocuments(query)
+        ]);
+
+        res.json({
+            jobs,
+            currentPage: page,
+            totalPages: Math.ceil(total / limit),
+            total
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

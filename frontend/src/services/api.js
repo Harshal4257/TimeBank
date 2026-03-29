@@ -1,35 +1,35 @@
 import axios from 'axios';
 
-// This checks if a live URL exists; otherwise, it defaults to localhost
 const API = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api', 
+    baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+    timeout: 30000, // 30 second timeout
 });
 
-// Interceptor to attach the token to every request dynamically
+// Request interceptor - attach token
 API.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle expired tokens
+// Response interceptor - handle errors globally
 API.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('role'); // Clear other items too
-      window.location.href = '/login';
+    (response) => response,
+    (error) => {
+        if (error.code === 'ECONNABORTED') {
+            alert('Request timed out. The server may be starting up, please try again in a moment.');
+        }
+        if (error.response?.status === 401) {
+            localStorage.clear();
+            window.location.href = '/login';
+        }
+        return Promise.reject(error);
     }
-    return Promise.reject(error);
-  }
 );
 
 export default API;

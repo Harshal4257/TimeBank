@@ -50,11 +50,30 @@ const handleSubmit = async (e) => {
           </div>
           
           <div className="relative z-10 text-center space-y-8">
-            <img
-              src="https://illustrations.popsy.co/gray/manager.svg"
-              alt="Login Illustration"
-              className="w-80 lg:w-96 animate-float"
-            />
+            <svg className="w-80 lg:w-96" viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+              {/* Person */}
+              <circle cx="200" cy="80" r="40" fill="#059669" opacity="0.9"/>
+              <rect x="160" y="130" width="80" height="90" rx="20" fill="#059669" opacity="0.9"/>
+              {/* Arms */}
+              <rect x="110" y="135" width="55" height="20" rx="10" fill="#059669" opacity="0.7"/>
+              <rect x="235" y="135" width="55" height="20" rx="10" fill="#059669" opacity="0.7"/>
+              {/* Legs */}
+              <rect x="165" y="210" width="25" height="60" rx="10" fill="#047857"/>
+              <rect x="210" y="210" width="25" height="60" rx="10" fill="#047857"/>
+              {/* Briefcase */}
+              <rect x="255" y="145" width="50" height="40" rx="8" fill="#34d399"/>
+              <rect x="265" y="138" width="30" height="12" rx="4" fill="#34d399"/>
+              <line x1="280" y1="145" x2="280" y2="185" stroke="#059669" strokeWidth="2"/>
+              {/* Background circles */}
+              <circle cx="80" cy="200" r="40" fill="#d1fae5" opacity="0.5"/>
+              <circle cx="320" cy="100" r="30" fill="#d1fae5" opacity="0.5"/>
+              <circle cx="350" cy="250" r="20" fill="#a7f3d0" opacity="0.4"/>
+              {/* Clock icon - TimeBank theme */}
+              <circle cx="80" cy="80" r="35" fill="#ecfdf5" stroke="#059669" strokeWidth="3"/>
+              <line x1="80" y1="80" x2="80" y2="58" stroke="#059669" strokeWidth="3" strokeLinecap="round"/>
+              <line x1="80" y1="80" x2="95" y2="88" stroke="#059669" strokeWidth="3" strokeLinecap="round"/>
+              <circle cx="80" cy="80" r="4" fill="#059669"/>
+            </svg>
             <div className="space-y-4">
               <h2 className="text-3xl font-bold text-secondary-800">Welcome Back!</h2>
               <p className="text-lg text-secondary-600 max-w-sm mx-auto">

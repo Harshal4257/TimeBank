@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { debounce } from '../utils/debounce';
 import { Link } from 'react-router-dom';
 import {
     Users, Briefcase,
@@ -11,6 +12,7 @@ const PosterApplicants = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
+    const debouncedSearch = debounce((value) => setSearchTerm(value), 300);
 
     const fetchApplications = useCallback(async () => {
         try {
@@ -75,7 +77,7 @@ const PosterApplicants = () => {
                             placeholder="Search by seeker name or job title..."
                             className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-medium"
                             value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
+                            onChange={(e) => debouncedSearch(e.target.value)}
                         />
                     </div>
                     <div className="flex gap-2">

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Briefcase, MapPin, Calendar, Clock, DollarSign, CheckCircle, XCircle, Clock4, ArrowRight } from 'lucide-react';
-import SeekerNavbar from '../components/SeekerNavbar';
+import { Briefcase, Clock, DollarSign, CheckCircle, XCircle, Clock4, ArrowRight, IndianRupee } from 'lucide-react';
 import API from '../services/api';
 
 const SeekerApplications = () => {
     const [applications, setApplications] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [activeFilter, setActiveFilter] = useState('all');
 
     useEffect(() => {
         fetchMyApplications();
@@ -41,7 +41,7 @@ const SeekerApplications = () => {
             case 'completed':
                 return (
                     <span className="flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
-                        <CheckCircle size={14} /> Completed
+                        <CheckCircle size={14} /> Completed & Paid
                     </span>
                 );
             case 'pending':
@@ -54,10 +54,22 @@ const SeekerApplications = () => {
         }
     };
 
+    const filters = ['all', 'pending', 'accepted', 'completed', 'rejected'];
+
+    const filteredApplications = activeFilter === 'all'
+        ? applications
+        : applications.filter(app => app.status === activeFilter);
+
+    const completedCount = applications.filter(a => a.status === 'completed').length;
+    const totalEarned = applications
+        .filter(a => a.status === 'completed')
+        .reduce((sum, a) => sum + (a.jobId?.hourlyRate * a.jobId?.hours || 0), 0);
+
     return (
         <div className="min-h-screen bg-[#E6EEF2]">
-
             <div className="max-w-7xl mx-auto px-6 py-8">
+
+                {/* Header */}
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-slate-900 mb-2 flex items-center gap-2">
                         <Briefcase className="text-emerald-600" size={28} />
@@ -65,6 +77,47 @@ const SeekerApplications = () => {
                     </h1>
                     <p className="text-slate-600">Track the status of all jobs you've applied for.</p>
                 </div>
+
+                {/* Stats Cards */}
+                {!loading && applications.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                            <p className="text-slate-500 text-sm font-medium">Total Applications</p>
+                            <p className="text-3xl font-black text-slate-900 mt-1">{applications.length}</p>
+                        </div>
+                        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+                            <p className="text-slate-500 text-sm font-medium">Completed Jobs</p>
+                            <p className="text-3xl font-black text-blue-600 mt-1">{completedCount}</p>
+                        </div>
+                        <div className="bg-emerald-600 rounded-2xl p-5 shadow-sm">
+                            <p className="text-emerald-100 text-sm font-medium">Total Earned</p>
+                            <p className="text-3xl font-black text-white mt-1">₹{totalEarned}</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Filter Tabs */}
+                {!loading && applications.length > 0 && (
+                    <div className="flex gap-2 mb-6 flex-wrap">
+                        {filters.map(filter => (
+                            <button
+                                key={filter}
+                                onClick={() => setActiveFilter(filter)}
+                                className={`px-4 py-2 rounded-xl text-sm font-bold capitalize transition-all ${
+                                    activeFilter === filter
+                                        ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100'
+                                        : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                                }`}
+                            >
+                                {filter === 'all' ? `All (${applications.length})` : 
+                                 filter === 'completed' ? `Completed (${applications.filter(a => a.status === 'completed').length})` :
+                                 filter === 'pending' ? `Pending (${applications.filter(a => a.status === 'pending').length})` :
+                                 filter === 'accepted' ? `Accepted (${applications.filter(a => a.status === 'accepted').length})` :
+                                 `Rejected (${applications.filter(a => a.status === 'rejected').length})`}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 {loading ? (
                     <div className="flex flex-col justify-center items-center py-20">
@@ -82,13 +135,25 @@ const SeekerApplications = () => {
                             Browse Jobs
                         </Link>
                     </div>
+                ) : filteredApplications.length === 0 ? (
+                    <div className="bg-white border border-slate-200 rounded-xl p-12 text-center shadow-sm">
+                        <p className="text-slate-500 text-lg">No {activeFilter} applications found</p>
+                    </div>
                 ) : (
                     <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                         <div className="divide-y divide-slate-100">
-                            {applications.map((app) => (
-                                <div key={app._id} className="p-6 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            {filteredApplications.map((app) => (
+                                <div
+                                    key={app._id}
+                                    className={`p-6 hover:bg-slate-50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+                                        app.status === 'completed' ? 'border-l-4 border-blue-500' :
+                                        app.status === 'accepted' ? 'border-l-4 border-emerald-500' :
+                                        app.status === 'rejected' ? 'border-l-4 border-red-400' :
+                                        'border-l-4 border-yellow-400'
+                                    }`}
+                                >
                                     <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-2">
+                                        <div className="flex items-center gap-3 mb-2 flex-wrap">
                                             <h3 className="text-lg font-bold text-slate-900">
                                                 {app.jobId ? app.jobId.title : 'Deleted Job'}
                                             </h3>
@@ -99,12 +164,21 @@ const SeekerApplications = () => {
                                             <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
                                                 <div className="flex items-center gap-1">
                                                     <DollarSign size={16} className="text-slate-400" />
-                                                    {app.jobId.hourlyRate} / hr
+                                                    ₹{app.jobId.hourlyRate}/hr • {app.jobId.hours} hrs
                                                 </div>
                                                 <div className="flex items-center gap-1">
                                                     <Clock size={16} className="text-slate-400" />
                                                     Applied {app.appliedAt ? new Date(app.appliedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'N/A'}
                                                 </div>
+                                                {/* ✅ Show payment amount for completed jobs */}
+                                                {app.status === 'completed' && (
+                                                    <div className="flex items-center gap-1 bg-emerald-50 px-3 py-1 rounded-full">
+                                                        <IndianRupee size={14} className="text-emerald-600" />
+                                                        <span className="text-emerald-700 font-bold">
+                                                            ₹{app.jobId.hourlyRate * app.jobId.hours} received
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                     </div>

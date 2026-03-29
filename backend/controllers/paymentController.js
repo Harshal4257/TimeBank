@@ -3,11 +3,17 @@ const crypto = require('crypto');
 const Transaction = require('../models/Transaction');
 const Application = require('../models/Application');
 const User = require('../models/User');
+const Notification = require('../models/Notification');
 
-const razorpay = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+let razorpay;
+if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+    razorpay = new Razorpay({
+        key_id: process.env.RAZORPAY_KEY_ID,
+        key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+} else {
+    console.warn('Razorpay keys not found — payment features disabled');
+}
 
 const createOrder = async (req, res) => {
     try {
@@ -25,7 +31,6 @@ const createOrder = async (req, res) => {
             return res.status(403).json({ message: 'Not authorized' });
         }
 
-        // ✅ New
         const amountInPaise = application.jobId.hourlyRate * application.jobId.hours * 100;
 
         const order = await razorpay.orders.create({
@@ -39,7 +44,6 @@ const createOrder = async (req, res) => {
             applicationId: application._id,
             posterId: req.user._id,
             seekerId: application.seekerId._id,
-            // ✅ New
             amount: application.jobId.hourlyRate * application.jobId.hours,
             razorpayOrderId: order.id,
             status: 'created'
@@ -80,21 +84,34 @@ const verifyPayment = async (req, res) => {
             return res.status(400).json({ message: 'Invalid payment signature' });
         }
 
-        const transaction = await Transaction.findById(transactionId);
+        const transaction = await Transaction.findById(transactionId)
+            .populate('jobId', 'title');
         if (!transaction) {
             return res.status(404).json({ message: 'Transaction not found' });
         }
 
+        // Update transaction to paid
         transaction.razorpayPaymentId = razorpayPaymentId;
         transaction.status = 'paid';
         await transaction.save();
 
+        // Update application to completed
         await Application.findByIdAndUpdate(applicationId, {
             status: 'completed'
         });
 
+        // Add credits to seeker
         await User.findByIdAndUpdate(transaction.seekerId, {
             $inc: { credits: transaction.amount }
+        });
+
+        // ✅ Send notification to seeker
+        await Notification.create({
+            user: transaction.seekerId,
+            title: '💰 Payment Received!',
+            message: `You have received ₹${transaction.amount} for completing "${transaction.jobId?.title}". Credits have been added to your account!`,
+            type: 'payment_received',
+            jobId: transaction.jobId?._id
         });
 
         res.status(200).json({ message: 'Payment verified and credits transferred!' });

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Home, Search, Briefcase, MessageSquare, Bell, User, Settings, HelpCircle, Shield, Bookmark, FileText, Star, ChevronDown, LogOut, Clock, Check } from 'lucide-react';
+import { Home, Briefcase, MessageSquare, Bell, User, Settings, HelpCircle, Bookmark, FileText, LogOut, Clock, Check } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import API from '../services/api';
 import logoImg from './logo.jpeg';
@@ -15,8 +15,20 @@ const SeekerNavbar = () => {
 
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000); // Poll every 30s
+    const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.navbar-dropdown')) {
+        setIsProfileDropdownOpen(false);
+        setIsNotificationsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const fetchNotifications = async () => {
@@ -64,15 +76,14 @@ const SeekerNavbar = () => {
 
         {/* Seeker Navigation Links */}
         <div className="hidden lg:flex items-center gap-6">
+
           {/* Main Navigation */}
           <Link to="/seeker-home" className="flex items-center gap-2 px-3 py-2 text-secondary-600 hover:text-primary-600 hover:bg-primary-50 rounded-xl font-medium transition-all text-sm">
             <Home size={16} /> Home
           </Link>
-
           <Link to="/my-applications" className="flex items-center gap-2 px-3 py-2 text-secondary-600 hover:text-primary-600 hover:bg-primary-50 rounded-xl font-medium transition-all text-sm">
             <Briefcase size={16} /> Applications
           </Link>
-
           <Link to="/messages" className="flex items-center gap-2 px-3 py-2 text-secondary-600 hover:text-primary-600 hover:bg-primary-50 rounded-xl font-medium transition-all text-sm">
             <MessageSquare size={16} /> Messages
           </Link>
@@ -80,9 +91,12 @@ const SeekerNavbar = () => {
           <div className="h-6 w-px bg-secondary-200"></div>
 
           {/* Notifications Dropdown */}
-          <div className="relative">
+          <div className="relative navbar-dropdown">
             <button
-              onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+              onClick={() => {
+                setIsNotificationsOpen(!isNotificationsOpen);
+                setIsProfileDropdownOpen(false);
+              }}
               className="relative p-2 text-secondary-600 hover:text-primary-600 rounded-xl hover:bg-primary-50 transition-all"
             >
               <Bell size={18} />
@@ -92,15 +106,19 @@ const SeekerNavbar = () => {
             </button>
 
             {isNotificationsOpen && (
-              <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-strong border border-secondary-100 py-4 overflow-hidden z-[70] animate-slide-down">
+              <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-strong border border-secondary-100 py-4 overflow-hidden z-[70]">
                 <div className="px-6 pb-4 border-b border-secondary-100 flex justify-between items-center">
                   <h3 className="font-semibold text-secondary-900 text-sm">Notifications</h3>
-                  {unreadCount > 0 && <div className="px-2 py-1 bg-primary-100 text-primary-700 text-xs font-semibold rounded-lg">NEW</div>}
+                  {unreadCount > 0 && (
+                    <div className="px-2 py-1 bg-primary-100 text-primary-700 text-xs font-semibold rounded-lg">
+                      {unreadCount} NEW
+                    </div>
+                  )}
                 </div>
-
                 <div className="max-h-80 overflow-y-auto">
                   {notifications.length === 0 ? (
                     <div className="p-8 text-center">
+                      <Bell size={32} className="text-slate-300 mx-auto mb-2" />
                       <p className="text-sm text-secondary-500">No notifications yet</p>
                     </div>
                   ) : notifications.map(n => (
@@ -110,10 +128,12 @@ const SeekerNavbar = () => {
                     >
                       <div className="flex justify-between items-start gap-3">
                         <div className="flex-1">
-                          <p className={`text-sm font-semibold ${!n.read ? 'text-secondary-900' : 'text-secondary-600'}`}>{n.title}</p>
+                          <p className={`text-sm font-semibold ${!n.read ? 'text-secondary-900' : 'text-secondary-600'}`}>
+                            {n.title}
+                          </p>
                           <p className="text-xs text-secondary-500 mt-1">{n.message}</p>
                           <p className="text-xs text-secondary-400 mt-2">
-                            {new Date(n.createdAt).toLocaleDateString()}
+                            {new Date(n.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </p>
                         </div>
                         {!n.read && (
@@ -133,23 +153,26 @@ const SeekerNavbar = () => {
           </div>
 
           {/* Profile Dropdown */}
-          <div className="relative">
+          <div className="relative navbar-dropdown">
             <button
-              onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+              onClick={() => {
+                setIsProfileDropdownOpen(!isProfileDropdownOpen);
+                setIsNotificationsOpen(false);
+              }}
               className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 hover:bg-primary-200 transition-all"
             >
               <User size={16} />
             </button>
 
             {isProfileDropdownOpen && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-strong border border-secondary-100 py-4 overflow-hidden z-[60] animate-slide-down">
-                {/* User Header Section */}
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-strong border border-secondary-100 py-4 overflow-hidden z-[60]">
+                {/* User Header */}
                 <div className="px-6 pb-4 border-b border-secondary-100 flex items-center gap-3">
                   <div className="w-10 h-10 bg-primary-600 rounded-xl flex items-center justify-center text-white text-lg font-semibold">
                     {userEmail.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-semibold text-secondary-900 truncate">{userEmail}</p>
+                    <p className="font-semibold text-secondary-900 truncate">{user?.name || userEmail}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <div className="px-2 py-1 bg-primary-100 text-primary-700 text-xs font-medium rounded-lg">
                         Seeker
@@ -158,17 +181,17 @@ const SeekerNavbar = () => {
                   </div>
                 </div>
 
-                {/* Credits Quick View */}
+                {/* Credits */}
                 <div className="px-6 py-3 bg-secondary-50 flex justify-between items-center border-b border-secondary-100">
                   <div className="flex items-center gap-2 text-secondary-600 font-medium text-xs uppercase">
                     <Clock size={14} /> Balance
                   </div>
                   <div className="text-primary-600 font-semibold text-lg">
-                    {user?.credits ?? 30} <span className="text-xs">Credits</span>
+                    {user?.credits ?? 0} <span className="text-xs">Credits</span>
                   </div>
                 </div>
 
-                {/* Navigation Options */}
+                {/* Nav Options */}
                 <div className="py-3 px-2">
                   <Link
                     to="/profile"
@@ -178,7 +201,6 @@ const SeekerNavbar = () => {
                     <User size={16} />
                     <p className="text-sm font-medium">My Profile</p>
                   </Link>
-
                   <Link
                     to="/my-applications"
                     className="flex items-center gap-3 px-3 py-2 text-secondary-600 hover:bg-secondary-50 rounded-xl transition-all"
@@ -187,7 +209,6 @@ const SeekerNavbar = () => {
                     <FileText size={16} />
                     <p className="text-sm font-medium">Applications</p>
                   </Link>
-
                   <Link
                     to="/saved-jobs"
                     className="flex items-center gap-3 px-3 py-2 text-secondary-600 hover:bg-secondary-50 rounded-xl transition-all"
@@ -207,7 +228,6 @@ const SeekerNavbar = () => {
                     <Settings size={16} />
                     <p className="text-sm font-medium">Settings</p>
                   </Link>
-
                   <Link
                     to="/help"
                     className="flex items-center gap-3 px-3 py-2 text-secondary-600 hover:bg-secondary-50 rounded-xl transition-all"
@@ -237,11 +257,9 @@ const SeekerNavbar = () => {
           onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
           className="lg:hidden p-2 rounded-xl hover:bg-secondary-50 transition-colors relative"
         >
-          <Bell size={20} />
-          {unreadCount > 0 && (
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-          )}
+          <User size={20} />
         </button>
+
       </div>
     </nav>
   );

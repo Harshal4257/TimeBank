@@ -11,6 +11,7 @@ const SeekerHomePage = () => {
   const [error, setError] = useState(null);
   const [appliedJobs, setAppliedJobs] = useState([]);
   const [savedJobs, setSavedJobs] = useState([]);
+  const [completedJobIds, setCompletedJobIds] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,14 +48,20 @@ const SeekerHomePage = () => {
   const fetchAppliedJobs = async () => {
     try {
       const res = await API.get('/applications/my');
-      const jobIds = res.data.map((app) =>
-        app.jobId && app.jobId._id ? app.jobId._id : app.jobId
-      );
+      const completed = res.data
+        .filter(app => app.status === 'completed')
+        .map(app => app.jobId?._id || app.jobId);
+      setCompletedJobIds(completed);
+
+      // Only include non-completed applied jobs
+      const jobIds = res.data
+        .filter(app => app.status !== 'completed')
+        .map(app => app.jobId?._id || app.jobId);
       setAppliedJobs(jobIds);
     } catch (err) {
       console.error('Error fetching applied jobs:', err);
     }
-  };
+};
 
   const handleApply = async (jobId) => {
     navigate(`/seeker/job/${jobId}`);
@@ -167,7 +174,9 @@ const SeekerHomePage = () => {
         {/* Jobs Grid */}
         {!loading && !error && matchingJobs.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {matchingJobs.map((job) => (
+            {matchingJobs
+            .filter(job => !completedJobIds.includes(job._id))
+            .map((job) => (
               <JobCard
                 key={job._id}
                 job={job}
