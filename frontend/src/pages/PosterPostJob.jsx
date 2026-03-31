@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, X, DollarSign, MapPin, Calendar, Clock, Briefcase, ArrowLeft } from 'lucide-react';
+import { Plus, X, IndianRupee, Calendar, Clock, ArrowLeft } from 'lucide-react';
 import API from '../services/api';
 
 const PosterPostJob = () => {
@@ -10,8 +10,6 @@ const PosterPostJob = () => {
     title: '',
     description: '',
     hourlyRate: '',
-    location: '',
-    workLocation: '',
     totalHours: '',
     deadline: '',
     skills: [],
@@ -35,10 +33,7 @@ const PosterPostJob = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const addSkill = () => {
@@ -61,10 +56,8 @@ const PosterPostJob = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validation
     if (!formData.title || !formData.description || !formData.hourlyRate ||
-      !formData.location || !formData.workLocation || !formData.totalHours ||
-      !formData.deadline || formData.skills.length === 0) {
+      !formData.totalHours || !formData.deadline || formData.skills.length === 0) {
       alert('Please fill in all required fields and add at least one skill');
       return;
     }
@@ -72,12 +65,11 @@ const PosterPostJob = () => {
     try {
       setLoading(true);
 
-      // Prepare job data
       const jobData = {
         title: formData.title,
         description: formData.description,
-        location: formData.location,
-        workLocation: formData.workLocation,
+        location: 'Remote',         // ✅ hardcoded as Remote
+        workLocation: 'Remote',     // ✅ hardcoded as Remote
         category: formData.category,
         hourlyRate: parseFloat(formData.hourlyRate),
         hours: parseInt(formData.totalHours),
@@ -86,9 +78,7 @@ const PosterPostJob = () => {
         status: 'active'
       };
 
-      // Post job to backend (removed double /api)
-      const response = await API.post('/jobs', jobData);
-
+      await API.post('/jobs', jobData);
       alert('Job posted successfully!');
       navigate('/poster/dashboard');
 
@@ -102,7 +92,7 @@ const PosterPostJob = () => {
 
   return (
     <div className="min-h-screen bg-[#E6EEF2]">
-      {/* Poster Navbar */}
+      {/* Navbar */}
       <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -166,33 +156,34 @@ const PosterPostJob = () => {
                 className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
                 {categories.map(category => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
+                  <option key={category} value={category}>{category}</option>
                 ))}
               </select>
             </div>
 
-            {/* Two Column Layout */}
+            {/* Hourly Rate + Total Hours */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-              {/* Hourly Rate */}
+              {/* Hourly Rate — ₹ */}
               <div>
                 <label className="block text-slate-700 font-medium mb-2">
-                  <DollarSign size={18} className="inline mr-2" />
-                  Hourly Rate ($) <span className="text-red-500">*</span>
+                  <IndianRupee size={18} className="inline mr-2" />
+                  Hourly Rate (₹) <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="number"
-                  name="hourlyRate"
-                  value={formData.hourlyRate}
-                  onChange={handleChange}
-                  placeholder="25.00"
-                  min="1"
-                  step="0.01"
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  required
-                />
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold">₹</span>
+                  <input
+                    type="number"
+                    name="hourlyRate"
+                    value={formData.hourlyRate}
+                    onChange={handleChange}
+                    placeholder="500"
+                    min="1"
+                    step="1"
+                    className="w-full p-4 pl-8 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    required
+                  />
+                </div>
               </div>
 
               {/* Total Hours */}
@@ -206,65 +197,40 @@ const PosterPostJob = () => {
                   name="totalHours"
                   value={formData.totalHours}
                   onChange={handleChange}
-                  placeholder="40"
+                  placeholder="10"
                   min="1"
                   className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   required
                 />
               </div>
+            </div>
 
-              {/* Location */}
+            {/* Remote Badge */}
+            <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+              <div className="w-8 h-8 bg-emerald-600 rounded-full flex items-center justify-center">
+                <span className="text-white text-xs">🌐</span>
+              </div>
               <div>
-                <label className="block text-slate-700 font-medium mb-2">
-                  <MapPin size={18} className="inline mr-2" />
-                  Job Location <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleChange}
-                  placeholder="e.g., New York, NY"
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  required
-                />
+                <p className="text-emerald-800 font-bold text-sm">Remote Only</p>
+                <p className="text-emerald-600 text-xs">All TimeBank jobs are 100% remote — work from anywhere!</p>
               </div>
+            </div>
 
-              {/* Work Location Type */}
-              <div>
-                <label className="block text-slate-700 font-medium mb-2">
-                  <Briefcase size={18} className="inline mr-2" />
-                  Work Location Type <span className="text-red-500">*</span>
-                </label>
-                <select
-                  name="workLocation"
-                  value={formData.workLocation}
-                  onChange={handleChange}
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="">Select work location</option>
-                  <option value="Remote">Remote</option>
-                  <option value="On-site">On-site</option>
-                  <option value="Hybrid">Hybrid</option>
-                </select>
-              </div>
-
-              {/* Deadline */}
-              <div className="md:col-span-2">
-                <label className="block text-slate-700 font-medium mb-2">
-                  <Calendar size={18} className="inline mr-2" />
-                  Application Deadline <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  name="deadline"
-                  value={formData.deadline}
-                  onChange={handleChange}
-                  min={new Date().toISOString().split('T')[0]}
-                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  required
-                />
-              </div>
+            {/* Deadline */}
+            <div>
+              <label className="block text-slate-700 font-medium mb-2">
+                <Calendar size={18} className="inline mr-2" />
+                Application Deadline <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                name="deadline"
+                value={formData.deadline}
+                onChange={handleChange}
+                min={new Date().toISOString().split('T')[0]}
+                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                required
+              />
             </div>
 
             {/* Skills Section */}
@@ -289,8 +255,6 @@ const PosterPostJob = () => {
                   <Plus size={18} />
                 </button>
               </div>
-
-              {/* Skills Tags */}
               {formData.skills.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {formData.skills.map((skill, index) => (
@@ -310,11 +274,20 @@ const PosterPostJob = () => {
                   ))}
                 </div>
               )}
-
               {formData.skills.length === 0 && (
                 <p className="text-slate-500 text-sm">Add at least one required skill</p>
               )}
             </div>
+
+            {/* Total Pay Preview */}
+            {formData.hourlyRate && formData.totalHours && (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center">
+                    <span className="text-slate-600 font-medium">Total Pay to Seeker</span>
+                    <span className="text-emerald-600 font-black text-xl">
+                        ₹{(parseFloat(formData.hourlyRate) * parseInt(formData.totalHours)).toLocaleString('en-IN')}
+                    </span>
+                </div>
+            )}
 
             {/* Action Buttons */}
             <div className="flex gap-4 pt-6">
@@ -335,9 +308,7 @@ const PosterPostJob = () => {
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
                     Posting Job...
                   </div>
-                ) : (
-                  'Post Job'
-                )}
+                ) : 'Post Job'}
               </button>
             </div>
           </form>

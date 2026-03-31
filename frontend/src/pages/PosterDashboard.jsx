@@ -99,7 +99,7 @@ const PosterDashboard = () => {
         </div>
 
         {/* My Jobs Section */}
-        <div className="mb-10">
+        {/* <div className="mb-10">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold text-slate-900">My Jobs</h2>
             <Link
@@ -108,7 +108,7 @@ const PosterDashboard = () => {
             >
               <Plus size={16} /> Post New Job
             </Link>
-          </div>
+          </div> */}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {postedJobs.map((job) => {
@@ -156,7 +156,6 @@ const PosterDashboard = () => {
               );
             })}
           </div>
-        </div>
       </div>
     </div>
   );

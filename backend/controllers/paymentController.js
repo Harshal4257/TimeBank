@@ -31,6 +31,11 @@ const createOrder = async (req, res) => {
             return res.status(403).json({ message: 'Not authorized' });
         }
 
+        // ✅ Only allow payment if work is submitted
+        if (application.status !== 'submitted') {
+            return res.status(400).json({ message: 'Cannot pay — seeker has not submitted work yet' });
+        }
+
         const amountInPaise = application.jobId.hourlyRate * application.jobId.hours * 100;
 
         const order = await razorpay.orders.create({
@@ -86,35 +91,33 @@ const verifyPayment = async (req, res) => {
 
         const transaction = await Transaction.findById(transactionId)
             .populate('jobId', 'title');
+
         if (!transaction) {
             return res.status(404).json({ message: 'Transaction not found' });
         }
 
-        // Update transaction to paid
+        // ✅ Update transaction
         transaction.razorpayPaymentId = razorpayPaymentId;
         transaction.status = 'paid';
         await transaction.save();
 
-        // Update application to completed
+        // ✅ Update application to completed + save payment info
         await Application.findByIdAndUpdate(applicationId, {
-            status: 'completed'
-        });
-
-        // Add credits to seeker
-        await User.findByIdAndUpdate(transaction.seekerId, {
-            $inc: { credits: transaction.amount }
+            status: 'completed',
+            paidAt: new Date(),
+            paymentAmount: transaction.amount
         });
 
         // ✅ Send notification to seeker
         await Notification.create({
             user: transaction.seekerId,
             title: '💰 Payment Received!',
-            message: `You have received ₹${transaction.amount} for completing "${transaction.jobId?.title}". Credits have been added to your account!`,
+            message: `You have received ₹${transaction.amount} for completing "${transaction.jobId?.title}". Great work!`,
             type: 'payment_received',
             jobId: transaction.jobId?._id
         });
 
-        res.status(200).json({ message: 'Payment verified and credits transferred!' });
+        res.status(200).json({ message: 'Payment verified and job completed!' });
 
     } catch (error) {
         console.error('Verify payment error:', error);

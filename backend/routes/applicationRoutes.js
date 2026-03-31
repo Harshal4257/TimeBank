@@ -8,18 +8,20 @@ const {
     completeJob,
     cancelApplication,
     getPosterApplications,
-    updateApplicationStatus
+    updateApplicationStatus,
+    submitWork
 } = require('../controllers/applicationController');
 const { protect } = require('../middleware/authMiddleware');
+const { uploadJobFiles, uploadSubmissionFiles } = require('../config/cloudinary');
 
-// ✅ MOVED TO TOP — must be before any /:id routes
+// ✅ SPECIFIC ROUTES FIRST (before any /:id routes)
 router.get('/my-accepted', protect, async (req, res) => {
     try {
         const Application = require('../models/Application');
-        const applications = await Application.find({ status: 'accepted' })
+        const applications = await Application.find({ status: 'submitted' })
             .populate({
                 path: 'jobId',
-                match: { poster: req.user._id } // ← changed postedBy to poster
+                match: { poster: req.user._id }
             })
             .populate('seekerId', 'name email');
 
@@ -29,28 +31,19 @@ router.get('/my-accepted', protect, async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch applications' });
     }
 });
-// Route to apply for a job (Seeker only)
+
 router.post('/apply/:jobId', protect, applyForJob);
-
-// Route to get all applicants for a specific job (Poster only)
 router.get('/job/:jobId', protect, getJobApplications);
-
-// Route to get all applications for jobs posted by current user (Poster only)
 router.get('/poster', protect, getPosterApplications);
-
-// Route to get my applications (Seeker only)
 router.get('/my', protect, getMyApplications);
-
-// Route to get my application for a given job (Seeker only)
 router.get('/job/:jobId/me', protect, getMyApplicationForJob);
-
-// Route to cancel (unapply) an application (Seeker only)
 router.delete('/:id', protect, cancelApplication);
-
-// Route to complete a job and transfer credits (Poster only)
 router.put('/:id/complete', protect, completeJob);
 
-// Route to accept or reject an application (Poster only)
-router.put('/:id/:action', protect, updateApplicationStatus);
+// ✅ Seeker submits work with files
+router.put('/:id/submit', protect, uploadSubmissionFiles.array('files', 5), submitWork);
+
+// ✅ Poster accepts/rejects with optional files & instructions
+router.put('/:id/:action', protect, uploadJobFiles.array('files', 5), updateApplicationStatus);
 
 module.exports = router;
