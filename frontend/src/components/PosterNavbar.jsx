@@ -25,7 +25,52 @@ const PosterNavbar = () => {
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
+  const [selectedNotification, setSelectedNotification] = useState(null);
+  const [notifications, setNotifications] = useState([
+    {
+      _id: '1',
+      title: 'New Application',
+      message: 'John Doe applied for your "Web Developer" job',
+      read: false,
+      createdAt: new Date().toISOString(),
+      type: 'application',
+      jobId: 'job123',
+      applicantId: 'user456'
+    },
+    {
+      _id: '2',
+      title: 'Job Posted Successfully',
+      message: 'Your job "React Developer" has been posted',
+      read: true,
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+      type: 'job_posted',
+      jobId: 'job789'
+    },
+    {
+      _id: '3',
+      title: 'Payment Received',
+      message: 'You received ₹5000 from Jane Smith',
+      read: false,
+      createdAt: new Date(Date.now() - 172800000).toISOString(),
+      type: 'payment',
+      paymentId: 'pay123'
+    }
+  ]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isNotificationsOpen && !event.target.closest('.notification-dropdown')) {
+        setIsNotificationsOpen(false);
+      }
+      if (isProfileDropdownOpen && !event.target.closest('.profile-dropdown')) {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isNotificationsOpen, isProfileDropdownOpen]);
 
   useEffect(() => {
     fetchNotifications();
@@ -42,29 +87,51 @@ const PosterNavbar = () => {
     }
   };
 
-  const markRead = async (id) => {
-    try {
-      await API.put(`/notifications/${id}/read`);
-      setNotifications(notifications.map(n => n._id === id ? { ...n, read: true } : n));
-    } catch (err) {
-      console.error('Error marking as read:', err);
-    }
-  };
+  const handleNotificationClick = (notification) => {
+  // Mark as read
+  setNotifications(notifications.map(n => n._id === notification._id ? { ...n, read: true } : n));
+  
+  // Navigate to appropriate page based on notification type
+  switch (notification.type) {
+    case 'application':
+      navigate(`/poster/applicants`);
+      break;
+    case 'job_posted':
+      navigate(`/poster/jobs`);
+      break;
+    case 'payment':
+      navigate(`/poster/payments`);
+      break;
+    default:
+      // For other types, just show the message
+      setSelectedNotification(notification);
+      return;
+  }
+  
+  // Close dropdown and remove notification after navigation
+  setIsNotificationsOpen(false);
+  setTimeout(() => {
+    setNotifications(prev => prev.filter(n => n._id !== notification._id));
+  }, 500);
+};
+
+const removeNotification = (id) => {
+  setNotifications(notifications.filter(n => n._id !== id));
+};
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  const navItems = [
+    { name: 'Jobs', path: '/poster/jobs', icon: Briefcase },
+    { name: 'Applicants', path: '/poster/applicants', icon: Users },
+    { name: 'Messages', path: '/poster/messages', icon: MessageSquare },
+    { name: 'Payments', path: '/poster/payments', icon: CreditCard },
+  ];
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
-
-  const navItems = [
-    { name: 'My Jobs', path: '/poster/jobs', icon: Briefcase },
-    { name: 'Applicants', path: '/poster/applicants', icon: Users },
-    { name: 'Messages', path: '/poster/messages', icon: MessageSquare },
-    { name: 'Payments', path: '/poster/payments', icon: CreditCard },
-    { name: 'Reports', path: '/poster/reports', icon: PieChart },
-  ];
 
   return (
     <nav className="bg-white border-b border-secondary-200 sticky top-0 z-50 backdrop-blur-xs bg-white/90">
@@ -101,9 +168,12 @@ const PosterNavbar = () => {
           </div>
 
           {/* Notifications */}
-          <div className="relative">
+          <div className="relative notification-dropdown">
             <button
-              onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+              onClick={() => {
+                console.log('Notification button clicked!');
+                setIsNotificationsOpen(!isNotificationsOpen);
+              }}
               className="relative p-2 text-secondary-600 hover:text-primary-600 rounded-xl hover:bg-primary-50 transition-all"
             >
               <Bell size={18} />
@@ -130,21 +200,16 @@ const PosterNavbar = () => {
                       className={`px-6 py-4 border-b border-secondary-50 hover:bg-secondary-50 transition-colors ${!n.read ? 'bg-primary-50/30' : ''}`}
                     >
                       <div className="flex justify-between items-start gap-3">
-                        <div className="flex-1">
+                        <div 
+                          className="flex-1 cursor-pointer hover:bg-secondary-50 p-3 rounded-lg transition-colors"
+                          onClick={() => handleNotificationClick(n)}
+                        >
                           <p className={`text-sm font-semibold ${!n.read ? 'text-secondary-900' : 'text-secondary-600'}`}>{n.title}</p>
                           <p className="text-xs text-secondary-500 mt-1">{n.message}</p>
                           <p className="text-xs text-secondary-400 mt-2">
                             {new Date(n.createdAt).toLocaleDateString()}
                           </p>
                         </div>
-                        {!n.read && (
-                          <button
-                            onClick={() => markRead(n._id)}
-                            className="p-1.5 bg-white rounded-lg border border-secondary-200 text-primary-600 hover:bg-primary-600 hover:text-white transition-all"
-                          >
-                            <Check size={12} />
-                          </button>
-                        )}
                       </div>
                     </div>
                   ))}
@@ -154,7 +219,7 @@ const PosterNavbar = () => {
           </div>
 
           {/* Profile Dropdown */}
-          <div className="relative">
+          <div className="relative profile-dropdown">
             <button
               onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
               className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 hover:bg-primary-200 transition-all"

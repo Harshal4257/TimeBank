@@ -1,16 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Briefcase, MapPin, Clock, DollarSign, Mail, User, ArrowLeft } from 'lucide-react';
+import { Briefcase, MapPin, Clock, DollarSign, Mail, User, ArrowLeft, Star, MessageSquare } from 'lucide-react';
 import API from '../services/api';
 import SeekerNavbar from '../components/SeekerNavbar';
+import JobReviewsSection from '../components/JobReviewsSection';
+import { AuthContext } from '../context/AuthContext';
 
 const SeekerJobDetail = () => {
   const { jobId } = useParams();
   const navigate = useNavigate();
+  const { user } = React.useContext(AuthContext);
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
+  const [unapplying, setUnapplying] = useState(false);
   const [application, setApplication] = useState(null);
+  const [hasReviewed, setHasReviewed] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -58,7 +63,7 @@ const SeekerJobDetail = () => {
   const handleUnapply = async () => {
     if (!application) return;
     try {
-      setApplying(true);
+      setUnapplying(true);
       await API.delete(`/applications/${application._id}`);
       setApplication(null);
       alert('Application cancelled.');
@@ -68,7 +73,7 @@ const SeekerJobDetail = () => {
       const status = err.response?.status;
       alert(msg ? `Failed to cancel application (${status}): ${msg}` : 'Failed to cancel application. Please try again.');
     } finally {
-      setApplying(false);
+      setUnapplying(false);
     }
   };
 
@@ -130,6 +135,36 @@ const SeekerJobDetail = () => {
                 </p>
               )}
               <p className="text-xs text-slate-400 mt-1">Posted on {postedDate}</p>
+              
+              {/* Review Rating */}
+              <div className="flex items-center gap-3 mt-2">
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      size={16}
+                      className={`${
+                        star <= (job.averageRating || 0)
+                          ? 'text-yellow-400 fill-yellow-400'
+                          : 'text-gray-300'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-sm font-medium text-slate-700">
+                  {job.averageRating?.toFixed(1) || '0.0'}
+                </span>
+                <span className="text-xs text-slate-500">
+                  ({job.reviewCount || 0} reviews)
+                </span>
+                <button
+                  onClick={() => document.getElementById('reviews-section')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
+                >
+                  <MessageSquare size={12} />
+                  Read Reviews
+                </button>
+              </div>
             </div>
             <div className="text-right space-y-1">
               <p className="flex items-center justify-end gap-1 text-slate-700">
@@ -206,10 +241,10 @@ const SeekerJobDetail = () => {
                 <button
                   type="button"
                   onClick={handleUnapply}
-                  disabled={applying}
-                  className="px-4 py-3 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-60 text-sm font-medium"
+                  disabled={unapplying}
+                  className="px-4 py-2 rounded-xl border border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-60"
                 >
-                  Unapply
+                  {unapplying ? 'Removing...' : 'Remove Application'}
                 </button>
               )}
               <button
@@ -227,6 +262,17 @@ const SeekerJobDetail = () => {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* Reviews Section */}
+        <div id="reviews-section" className="mt-8">
+          <JobReviewsSection
+            jobId={jobId}
+            jobTitle={job.title}
+            isOwner={false}
+            hasReviewed={hasReviewed}
+            currentUserId={user?.id}
+          />
         </div>
       </div>
     </div>

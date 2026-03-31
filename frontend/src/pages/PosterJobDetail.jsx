@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   MapPin,
@@ -13,13 +13,18 @@ import {
   ArrowLeft,
   Star,
   User,
-  CreditCard
+  CreditCard,
+  Filter,
+  TrendingUp
 } from 'lucide-react';
 import API from '../services/api';
+import JobReviewsSection from '../components/JobReviewsSection';
+import { AuthContext } from '../context/AuthContext';
 
 const PosterJobDetail = () => {
   const { jobId } = useParams();
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext); // Get user from auth context
   const [job, setJob] = useState(null);
   const [applicants, setApplicants] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -475,6 +480,17 @@ const PosterJobDetail = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Reviews Section */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <JobReviewsSection
+          jobId={jobId}
+          jobTitle={job?.title || 'Job Title'}
+          isOwner={true}
+          hasReviewed={false}
+          currentUserId={user?.id}
+        />
       </div>
     </div>
   );

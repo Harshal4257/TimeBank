@@ -11,7 +11,36 @@ const SeekerNavbar = () => {
   const userEmail = user?.email || localStorage.getItem('email') || 'User';
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
+  const [selectedNotification, setSelectedNotification] = useState(null);
+  const [notifications, setNotifications] = useState([
+    {
+      _id: '1',
+      title: 'Application Accepted',
+      message: 'Your application for "Senior Developer" has been accepted',
+      read: false,
+      createdAt: new Date().toISOString(),
+      type: 'application_accepted',
+      jobId: 'job123'
+    },
+    {
+      _id: '2',
+      title: 'New Job Match',
+      message: 'New job "React Developer" matches your skills',
+      read: false,
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+      type: 'job_match',
+      jobId: 'job456'
+    },
+    {
+      _id: '3',
+      title: 'Interview Scheduled',
+      message: 'Interview scheduled for tomorrow at 2:00 PM',
+      read: true,
+      createdAt: new Date(Date.now() - 172800000).toISOString(),
+      type: 'interview',
+      interviewId: 'int789'
+    }
+  ]);
 
   useEffect(() => {
     fetchNotifications();
@@ -21,15 +50,18 @@ const SeekerNavbar = () => {
 
   // Close dropdowns when clicking outside
   useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (!e.target.closest('.navbar-dropdown')) {
-        setIsProfileDropdownOpen(false);
+    const handleClickOutside = (event) => {
+      if (isNotificationsOpen && !event.target.closest('.notification-dropdown')) {
         setIsNotificationsOpen(false);
       }
+      if (isProfileDropdownOpen && !event.target.closest('.profile-dropdown')) {
+        setIsProfileDropdownOpen(false);
+      }
     };
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [isNotificationsOpen, isProfileDropdownOpen]);
 
   const fetchNotifications = async () => {
     try {
@@ -38,6 +70,34 @@ const SeekerNavbar = () => {
     } catch (err) {
       console.error('Error fetching notifications:', err);
     }
+  };
+
+  const handleNotificationClick = (notification) => {
+    // Mark as read
+    setNotifications(notifications.map(n => n._id === notification._id ? { ...n, read: true } : n));
+    
+    // Navigate to appropriate page based on notification type
+    switch (notification.type) {
+      case 'application_accepted':
+        navigate(`/my-applications`);
+        break;
+      case 'job_match':
+        navigate(`/jobs/${notification.jobId}`);
+        break;
+      case 'interview':
+        navigate(`/my-applications`);
+        break;
+      default:
+        // For other types, just show the message
+        setSelectedNotification(notification);
+        return;
+    }
+    
+    // Close dropdown and remove notification after navigation
+    setIsNotificationsOpen(false);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n._id !== notification._id));
+    }, 500);
   };
 
   const markRead = async (id) => {
@@ -91,11 +151,11 @@ const SeekerNavbar = () => {
           <div className="h-6 w-px bg-secondary-200"></div>
 
           {/* Notifications Dropdown */}
-          <div className="relative navbar-dropdown">
+          <div className="relative notification-dropdown">
             <button
               onClick={() => {
+                console.log('Seeker notification button clicked!');
                 setIsNotificationsOpen(!isNotificationsOpen);
-                setIsProfileDropdownOpen(false);
               }}
               className="relative p-2 text-secondary-600 hover:text-primary-600 rounded-xl hover:bg-primary-50 transition-all"
             >
@@ -106,19 +166,17 @@ const SeekerNavbar = () => {
             </button>
 
             {isNotificationsOpen && (
-              <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-strong border border-secondary-100 py-4 overflow-hidden z-[70]">
+              <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-strong border border-secondary-100 py-4 overflow-hidden z-[70] animate-slide-down">
                 <div className="px-6 pb-4 border-b border-secondary-100 flex justify-between items-center">
                   <h3 className="font-semibold text-secondary-900 text-sm">Notifications</h3>
                   {unreadCount > 0 && (
-                    <div className="px-2 py-1 bg-primary-100 text-primary-700 text-xs font-semibold rounded-lg">
-                      {unreadCount} NEW
-                    </div>
+                    <div className="px-2 py-1 bg-primary-100 text-primary-700 text-xs font-semibold rounded-lg">NEW</div>
                   )}
                 </div>
+
                 <div className="max-h-80 overflow-y-auto">
                   {notifications.length === 0 ? (
                     <div className="p-8 text-center">
-                      <Bell size={32} className="text-slate-300 mx-auto mb-2" />
                       <p className="text-sm text-secondary-500">No notifications yet</p>
                     </div>
                   ) : notifications.map(n => (
@@ -127,23 +185,16 @@ const SeekerNavbar = () => {
                       className={`px-6 py-4 border-b border-secondary-50 hover:bg-secondary-50 transition-colors ${!n.read ? 'bg-primary-50/30' : ''}`}
                     >
                       <div className="flex justify-between items-start gap-3">
-                        <div className="flex-1">
-                          <p className={`text-sm font-semibold ${!n.read ? 'text-secondary-900' : 'text-secondary-600'}`}>
-                            {n.title}
-                          </p>
+                        <div 
+                          className="flex-1 cursor-pointer hover:bg-secondary-50 p-3 rounded-lg transition-colors"
+                          onClick={() => handleNotificationClick(n)}
+                        >
+                          <p className={`text-sm font-semibold ${!n.read ? 'text-secondary-900' : 'text-secondary-600'}`}>{n.title}</p>
                           <p className="text-xs text-secondary-500 mt-1">{n.message}</p>
                           <p className="text-xs text-secondary-400 mt-2">
-                            {new Date(n.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            {new Date(n.createdAt).toLocaleDateString()}
                           </p>
                         </div>
-                        {!n.read && (
-                          <button
-                            onClick={() => markRead(n._id)}
-                            className="p-1.5 bg-white rounded-lg border border-secondary-200 text-primary-600 hover:bg-primary-600 hover:text-white transition-all"
-                          >
-                            <Check size={12} />
-                          </button>
-                        )}
                       </div>
                     </div>
                   ))}
@@ -153,7 +204,7 @@ const SeekerNavbar = () => {
           </div>
 
           {/* Profile Dropdown */}
-          <div className="relative navbar-dropdown">
+          <div className="relative profile-dropdown">
             <button
               onClick={() => {
                 setIsProfileDropdownOpen(!isProfileDropdownOpen);

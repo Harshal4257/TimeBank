@@ -1,8 +1,30 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Briefcase, MapPin, Clock, DollarSign, Bookmark, ExternalLink, Sparkles } from 'lucide-react';
+import { Briefcase, MapPin, Clock, DollarSign, Bookmark, ExternalLink, Sparkles, Star, MessageSquare } from 'lucide-react';
 
 const JobCard = ({ job, onApply, onSave, isApplied = false, isSaved = false }) => {
+
+  // Calculate rating data from localStorage
+  const getRatingData = (jobId) => {
+    try {
+      const jobReviews = JSON.parse(localStorage.getItem('jobReviews') || '{}');
+      const reviews = jobReviews[jobId] || [];
+      
+      if (reviews.length === 0) {
+        return { averageRating: 0, reviewCount: 0 };
+      }
+      
+      const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
+      const averageRating = totalRating / reviews.length;
+      
+      return { averageRating, reviewCount: reviews.length };
+    } catch (error) {
+      console.error('Error calculating rating data:', error);
+      return { averageRating: 0, reviewCount: 0 };
+    }
+  };
+
+  const ratingData = getRatingData(job._id || job.jobId);
 
   // 1. ENSURE SCORE IS READABLE: 
   // If backend sends 0.75, we turn it into 75. If it sends 75, we keep 75.
@@ -99,6 +121,56 @@ const JobCard = ({ job, onApply, onSave, isApplied = false, isSaved = false }) =
             </span>
           )}
         </div>
+      </div>
+
+      {/* Reviews Section */}
+      <div className="mb-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  size={12}
+                  className={`${
+                    star <= ratingData.averageRating
+                      ? 'text-yellow-400 fill-yellow-400'
+                      : 'text-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
+            <span className="text-sm font-medium text-slate-700">
+              {ratingData.averageRating.toFixed(1)}
+            </span>
+            <span className="text-xs text-slate-500">
+              ({ratingData.reviewCount} reviews)
+            </span>
+          </div>
+          
+          <Link
+            to={`/jobs/${job._id}/reviews`}
+            className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
+          >
+            <MessageSquare size={12} />
+            Read Reviews
+          </Link>
+        </div>
+        
+        {/* Review Summary */}
+        {job.reviewCount > 0 && (
+          <div className="mt-2 flex items-center gap-2">
+            <div className="flex-1 bg-slate-200 rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-yellow-400 h-full transition-all duration-300"
+                style={{ width: `${(job.averageRating / 5) * 100}%` }}
+              />
+            </div>
+            <span className="text-xs text-slate-600">
+              {Math.round((job.averageRating / 5) * 100)}% positive
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Match Score Progress Bar */}
