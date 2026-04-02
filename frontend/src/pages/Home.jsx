@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Search, Users, Laptop, Clock, Star, ArrowRight, TrendingUp, Shield, Zap } from 'lucide-react';
 
 const Home = () => {
@@ -133,12 +134,18 @@ const Home = () => {
             <h2 className="text-3xl lg:text-4xl font-black mb-4">Ready to Get Started?</h2>
             <p className="text-lg mb-8 opacity-90">Join thousands of community members sharing skills and building connections.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-white text-primary-600 px-8 py-4 rounded-xl font-bold hover:bg-secondary-50 transition-all duration-300 transform hover:scale-105 shadow-medium">
+              <Link 
+                to="/register?role=Seeker"
+                className="bg-white text-primary-600 px-8 py-4 rounded-xl font-bold hover:bg-secondary-50 transition-all duration-300 transform hover:scale-105 shadow-medium text-center"
+              >
                 Join as Seeker
-              </button>
-              <button className="bg-secondary-800 text-white px-8 py-4 rounded-xl font-bold hover:bg-secondary-900 transition-all duration-300 transform hover:scale-105 shadow-medium">
+              </Link>
+              <Link 
+                to="/register?role=Poster"
+                className="bg-secondary-800 text-white px-8 py-4 rounded-xl font-bold hover:bg-secondary-900 transition-all duration-300 transform hover:scale-105 shadow-medium text-center"
+              >
                 Post a Task
-              </button>
+              </Link>
             </div>
           </div>
         </div>

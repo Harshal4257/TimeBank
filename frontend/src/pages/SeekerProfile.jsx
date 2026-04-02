@@ -34,12 +34,16 @@ const SeekerProfile = () => {
     }
 
     // Set minimal profile Data from AuthContext first for instant UI response
-    setProfileData(prev => ({
-      ...prev,
-      name: user.name || localStorage.getItem('name') || prev.name,
-      email: user.email || localStorage.getItem('email') || prev.email,
-      skills: user.skills && user.skills.length > 0 ? user.skills : prev.skills
-    }));
+    const initialData = {
+      ...profileData,
+      name: user.name || localStorage.getItem('name') || profileData.name,
+      email: user.email || localStorage.getItem('email') || profileData.email,
+      skills: user.skills && user.skills.length > 0 ? user.skills : profileData.skills
+    };
+    
+    console.log('Setting initial profile data:', initialData);
+    console.log('Initial skills:', initialData.skills);
+    setProfileData(initialData);
 
     // Perform an asynchronous DB fetch to ensure absolute newest fields
     const fetchUserProfile = async () => {
@@ -48,23 +52,30 @@ const SeekerProfile = () => {
         const response = await API.get(`/users/profile?_t=${new Date().getTime()}`);
         const dbData = response.data;
         
+        console.log('Fetched profile data from DB:', dbData);
+        console.log('DB skills:', dbData.skills);
+        
         // Use dbData exclusively over previous fields, as DB is single source of truth!
-        setProfileData(prev => ({
-          ...prev,
-          name: dbData.name || prev.name,
-          email: dbData.email || prev.email,
-          title: dbData.currentRole || prev.title,
-          location: dbData.location || prev.location,
-          role: dbData.role || prev.role,
-          skills: dbData.skills || prev.skills, // Use exact skills array mapping
-          bio: dbData.bio || prev.bio,
-          profilePicture: dbData.avatarUrl || prev.profilePicture
-        }));
+        const updatedData = {
+          ...profileData,
+          name: dbData.name || profileData.name,
+          email: dbData.email || profileData.email,
+          title: dbData.currentRole || profileData.title,
+          location: dbData.location || profileData.location,
+          role: dbData.role || profileData.role,
+          skills: dbData.skills || profileData.skills, // Use exact skills array mapping
+          bio: dbData.bio || profileData.bio,
+          profilePicture: dbData.avatarUrl || profileData.profilePicture
+        };
+        
+        console.log('Setting updated profile data:', updatedData);
+        console.log('Updated skills:', updatedData.skills);
+        setProfileData(updatedData);
       } catch (error) {
-        console.error('SeekerProfile - Error fetching fresh user profile:', error);
+        console.error('Error fetching user profile:', error);
       }
     };
-    
+
     fetchUserProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
@@ -76,6 +87,9 @@ const SeekerProfile = () => {
 
   const handleSaveProfile = async () => {
     try {
+        console.log('Saving profile with data:', tempProfileData);
+        console.log('Skills being saved:', tempProfileData.skills);
+        
         await API.put('/users/profile', {
             name: tempProfileData.name,
             bio: tempProfileData.bio,
@@ -83,6 +97,8 @@ const SeekerProfile = () => {
             currentRole: tempProfileData.title,
             skills: tempProfileData.skills,
         });
+        
+        console.log('Profile saved successfully, updating local state...');
         setProfileData({ ...tempProfileData });
         setShowEditForm(false);
         alert('Profile updated successfully!');
@@ -377,10 +393,17 @@ const handleImageUpload = async (e) => {
                       className="flex-1 px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && e.target.value.trim()) {
-                          setTempProfileData(prev => ({
-                            ...prev,
-                            skills: [...prev.skills, e.target.value.trim()]
-                          }));
+                          const newSkill = e.target.value.trim();
+                          console.log('Adding skill via Enter:', newSkill);
+                          console.log('Current skills before adding:', tempProfileData.skills);
+                          setTempProfileData(prev => {
+                            const updated = {
+                              ...prev,
+                              skills: [...prev.skills, newSkill]
+                            };
+                            console.log('Updated temp skills after adding:', updated.skills);
+                            return updated;
+                          });
                           e.target.value = '';
                         }
                       }}
@@ -390,10 +413,17 @@ const handleImageUpload = async (e) => {
                       onClick={() => {
                         const input = skillInputRef.current;
                         if (input && input.value.trim()) {
-                          setTempProfileData(prev => ({
-                            ...prev,
-                            skills: [...prev.skills, input.value.trim()]
-                          }));
+                          const newSkill = input.value.trim();
+                          console.log('Adding skill via button:', newSkill);
+                          console.log('Current skills before adding:', tempProfileData.skills);
+                          setTempProfileData(prev => {
+                            const updated = {
+                              ...prev,
+                              skills: [...prev.skills, newSkill]
+                            };
+                            console.log('Updated temp skills after adding:', updated.skills);
+                            return updated;
+                          });
                           input.value = '';
                         }
                       }}

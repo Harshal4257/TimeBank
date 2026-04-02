@@ -1,6 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Home, Briefcase, MessageSquare, Bell, User, Settings, HelpCircle, Bookmark, FileText, LogOut, Clock, Check } from 'lucide-react';
+import { 
+  User,
+  Settings,
+  LogOut,
+  Bell,
+  Menu,
+  X,
+  ChevronDown,
+  Briefcase,
+  MessageSquare,
+  Home,
+  FileText,
+  Bookmark,
+  HelpCircle
+} from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import API from '../services/api';
 import logoImg from './logo.jpeg';
@@ -232,17 +246,7 @@ const SeekerNavbar = () => {
                   </div>
                 </div>
 
-                {/* Credits */}
-                <div className="px-6 py-3 bg-secondary-50 flex justify-between items-center border-b border-secondary-100">
-                  <div className="flex items-center gap-2 text-secondary-600 font-medium text-xs uppercase">
-                    <Clock size={14} /> Balance
-                  </div>
-                  <div className="text-primary-600 font-semibold text-lg">
-                    {user?.credits ?? 0} <span className="text-xs">Credits</span>
-                  </div>
-                </div>
-
-                {/* Nav Options */}
+                {/* Profile Options */}
                 <div className="py-3 px-2">
                   <Link
                     to="/profile"
