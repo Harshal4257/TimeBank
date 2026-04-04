@@ -1,6 +1,6 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, ArrowRight, Home } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import API from '../services/api';
 
@@ -102,7 +102,16 @@ const handleSubmit = async (e) => {
           <div className="space-y-8">
             {/* Header */}
             <div className="space-y-2">
-              <h1 className="text-4xl font-black text-secondary-900">Log In</h1>
+              <div className="flex items-center justify-between">
+                <h1 className="text-4xl font-black text-secondary-900">Log In</h1>
+                <Link
+                  to="/"
+                  className="flex items-center gap-2 px-4 py-2 text-secondary-600 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors font-medium"
+                >
+                  <Home size={18} />
+                  Home
+                </Link>
+              </div>
               <p className="text-secondary-600">Enter your credentials to access your account</p>
             </div>
 

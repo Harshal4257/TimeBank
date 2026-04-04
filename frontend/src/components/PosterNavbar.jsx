@@ -75,7 +75,20 @@ const PosterNavbar = () => {
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
+    
+    // Listen for notification removal events
+    const handleRemoveNotification = (event) => {
+      const { id } = event.detail;
+      console.log('Removing notification:', id);
+      setNotifications(prev => prev.filter(n => n._id !== id));
+    };
+    
+    window.addEventListener('removeNotification', handleRemoveNotification);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('removeNotification', handleRemoveNotification);
+    };
   }, []);
 
   const fetchNotifications = async () => {
@@ -88,32 +101,27 @@ const PosterNavbar = () => {
   };
 
   const handleNotificationClick = (notification) => {
-  // Mark as read
-  setNotifications(notifications.map(n => n._id === notification._id ? { ...n, read: true } : n));
-  
-  // Navigate to appropriate page based on notification type
-  switch (notification.type) {
-    case 'application':
-      navigate(`/poster/applicants`);
-      break;
-    case 'job_posted':
-      navigate(`/poster/jobs`);
-      break;
-    case 'payment':
-      navigate(`/poster/payments`);
-      break;
-    default:
-      // For other types, just show the message
-      setSelectedNotification(notification);
-      return;
-  }
-  
-  // Close dropdown and remove notification after navigation
-  setIsNotificationsOpen(false);
-  setTimeout(() => {
-    setNotifications(prev => prev.filter(n => n._id !== notification._id));
-  }, 500);
-};
+    // Mark as read
+    setNotifications(notifications.map(n => n._id === notification._id ? { ...n, read: true } : n));
+    
+    // Navigate to messages page with specific chat info
+    navigate('/poster/messages', { 
+      state: { 
+        notificationUser: notification.applicantId || notification.senderId,
+        notificationMessage: notification.message,
+        notificationTitle: notification.title,
+        notificationId: notification._id
+      } 
+    });
+    
+    // Close dropdown
+    setIsNotificationsOpen(false);
+    
+    // Store notification info to remove after viewing messages
+    sessionStorage.setItem('pendingNotificationId', notification._id);
+    sessionStorage.setItem('pendingNotificationMessage', notification.message);
+    sessionStorage.setItem('notificationUserId', notification.applicantId || notification.senderId);
+  };
 
 const removeNotification = (id) => {
   setNotifications(notifications.filter(n => n._id !== id));

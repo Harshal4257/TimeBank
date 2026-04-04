@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Send, User, MessageSquare } from 'lucide-react';
+import { Search, Send, User, MessageSquare, Bell } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import API from '../services/api';
 
 const Messages = () => {
@@ -9,6 +10,7 @@ const Messages = () => {
     const [messageInput, setMessageInput] = useState('');
     const [loading, setLoading] = useState(true);
 
+    const location = useLocation();
     const currentUser = JSON.parse(localStorage.getItem('user')) || { id: localStorage.getItem('userId') };
 
     useEffect(() => {
@@ -72,6 +74,7 @@ const Messages = () => {
 
     return (
         <div className="min-h-[calc(100vh-80px)] bg-[#E6EEF2] p-6 lg:p-10">
+            
             <div className="max-w-6xl mx-auto h-[700px] bg-white rounded-[32px] shadow-2xl overflow-hidden flex border border-white">
 
                 {/* Sidebar: Chat List */}

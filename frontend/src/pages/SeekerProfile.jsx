@@ -1,17 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { User, MapPin, Briefcase, Settings, Edit, ArrowRight, Share, Plus, X, Camera } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
 import API from '../services/api';
 
 const SeekerProfile = () => {
   const { user } = React.useContext(AuthContext);
+  const { userId } = useParams();
   const [isEditing, setIsEditing] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
   const skillInputRef = useRef(null);
   
-  // Debug: Log user data to see what we're getting
+  // Debug: Log user data and userId parameter
   console.log('SeekerProfile - User data:', user);
+  console.log('SeekerProfile - URL userId:', userId);
+  console.log('SeekerProfile - User ID from auth:', user?.id);
+  
+  // Determine if viewing own profile or someone else's
+  const isOwnProfile = !userId || userId === user?.id;
+  console.log('SeekerProfile - Is own profile:', isOwnProfile);
+  
+  // Add more debugging for the applicant data
+  if (!isOwnProfile) {
+    console.log('SeekerProfile - Loading profile for different user:', userId);
+    console.log('SeekerProfile - Current user (poster) ID:', user?.id);
+  }
 
   const [profileData, setProfileData] = useState({
     name: '',
@@ -33,49 +46,104 @@ const SeekerProfile = () => {
       return;
     }
 
-    // Set minimal profile Data from AuthContext first for instant UI response
-    setProfileData(prev => ({
-      ...prev,
-      name: user.name || localStorage.getItem('name') || prev.name,
-      email: user.email || localStorage.getItem('email') || prev.email,
-      skills: user.skills && user.skills.length > 0 ? user.skills : prev.skills
-    }));
+    // Set minimal profile Data from AuthContext only if viewing own profile
+    const initialData = {
+      ...profileData,
+      name: isOwnProfile ? (user.name || localStorage.getItem('name') || profileData.name) : '', // Empty for other users
+      email: isOwnProfile ? (user.email || localStorage.getItem('email') || profileData.email) : '', // Empty for other users
+      skills: isOwnProfile && user.skills && user.skills.length > 0 ? user.skills : profileData.skills
+    };
+    
+    console.log('Setting initial profile data:', initialData);
+    console.log('Is own profile:', isOwnProfile);
+    console.log('Initial name (should be empty for other users):', initialData.name);
+    console.log('Initial skills:', initialData.skills);
+    setProfileData(initialData);
 
     // Perform an asynchronous DB fetch to ensure absolute newest fields
     const fetchUserProfile = async () => {
       try {
-        // Cache-busting URL parameter prevents browser from sticking to old, empty profile data during SPA navigation
-        const response = await API.get(`/users/profile?_t=${new Date().getTime()}`);
+        let profileUrl;
+        
+        if (isOwnProfile) {
+          // Fetch own profile
+          profileUrl = `/users/profile?_t=${new Date().getTime()}`;
+          console.log('Fetching own profile from:', profileUrl);
+        } else {
+          // Fetch specific user's profile
+          profileUrl = `/users/profile/${userId}?_t=${new Date().getTime()}`;
+          console.log('Fetching user profile from:', profileUrl);
+          console.log('Requesting profile for userId:', userId);
+        }
+        
+        const response = await API.get(profileUrl);
         const dbData = response.data;
         
+        console.log('Fetched profile data from DB:', dbData);
+        console.log('Returned user name:', dbData.name);
+        console.log('Returned user email:', dbData.email);
+        console.log('Expected userId:', userId);
+        console.log('Returned user ID:', dbData._id || dbData.id);
+        
+        // Check if we got the right user
+        if (dbData._id !== userId && dbData.id !== userId) {
+          console.error('⚠️ WRONG USER DATA RETURNED!');
+          console.error('Expected:', userId);
+          console.error('Got:', dbData._id || dbData.id);
+        }
+        
         // Use dbData exclusively over previous fields, as DB is single source of truth!
-        setProfileData(prev => ({
-          ...prev,
-          name: dbData.name || prev.name,
-          email: dbData.email || prev.email,
-          title: dbData.currentRole || prev.title,
-          location: dbData.location || prev.location,
-          role: dbData.role || prev.role,
-          skills: dbData.skills || prev.skills, // Use exact skills array mapping
-          bio: dbData.bio || prev.bio,
-          profilePicture: dbData.avatarUrl || prev.profilePicture
-        }));
+        const updatedData = {
+          name: dbData.name || '', // Always use DB name, fallback to empty
+          email: dbData.email || '', // Always use DB email, fallback to empty
+          title: dbData.currentRole || profileData.title,
+          location: dbData.location || profileData.location,
+          role: dbData.role || profileData.role,
+          skills: dbData.skills || profileData.skills, // Use exact skills array mapping
+          bio: dbData.bio || profileData.bio,
+          profilePicture: dbData.avatarUrl || profileData.profilePicture
+        };
+        
+        console.log('Setting updated profile data:', updatedData);
+        console.log('Final name being set:', updatedData.name);
+        console.log('DB name was:', dbData.name);
+        console.log('Updated skills:', updatedData.skills);
+        
+        // Force update with new data - completely replace state
+        setProfileData(prev => {
+          console.log('Previous profile data:', prev);
+          console.log('New profile data being set:', updatedData);
+          return updatedData;
+        });
       } catch (error) {
-        console.error('SeekerProfile - Error fetching fresh user profile:', error);
+        console.error('Error fetching user profile:', error);
       }
     };
-    
+
     fetchUserProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
+  }, [user, userId, isOwnProfile]);
+
+  // Debug: Log profile data changes
+  useEffect(() => {
+    console.log('Profile data updated:', profileData);
+    console.log('Current name in state:', profileData.name);
+  }, [profileData]);
 
   const handleEditProfile = () => {
+    if (!isOwnProfile) {
+      alert('You can only edit your own profile.');
+      return;
+    }
     setTempProfileData({ ...profileData });
     setShowEditForm(true);
   };
 
   const handleSaveProfile = async () => {
     try {
+        console.log('Saving profile with data:', tempProfileData);
+        console.log('Skills being saved:', tempProfileData.skills);
+        
         await API.put('/users/profile', {
             name: tempProfileData.name,
             bio: tempProfileData.bio,
@@ -83,6 +151,8 @@ const SeekerProfile = () => {
             currentRole: tempProfileData.title,
             skills: tempProfileData.skills,
         });
+        
+        console.log('Profile saved successfully, updating local state...');
         setProfileData({ ...tempProfileData });
         setShowEditForm(false);
         alert('Profile updated successfully!');
@@ -177,7 +247,7 @@ const handleImageUpload = async (e) => {
               <div className="lg:col-span-1">
                 <div className="mb-6">
                   <h1 className="text-2xl font-black text-secondary-900">
-                    {user?.name || localStorage.getItem('name') || profileData.name || 'No Name'}
+                    {profileData.name || 'No Name'}
                   </h1>
                   <p className="text-lg text-secondary-600">{profileData.title}</p>
                 </div>
@@ -189,12 +259,14 @@ const handleImageUpload = async (e) => {
 
                 {/* Action Buttons */}
                 <div className="flex flex-col gap-3">
-                  <button
-                    onClick={handleEditProfile}
-                    className="bg-secondary-800 text-white px-6 py-3 rounded-xl font-semibold hover:bg-secondary-900 transition-all flex items-center justify-center gap-2 w-full"
-                  >
-                    <Edit size={16} /> Edit Profile
-                  </button>
+                  {isOwnProfile && (
+                    <button
+                      onClick={handleEditProfile}
+                      className="bg-secondary-800 text-white px-6 py-3 rounded-xl font-semibold hover:bg-secondary-900 transition-all flex items-center justify-center gap-2 w-full"
+                    >
+                      <Edit size={16} /> Edit Profile
+                    </button>
+                  )}
                   <Link
                     to="/settings"
                     className="border-2 border-secondary-300 text-secondary-700 px-6 py-3 rounded-xl font-semibold hover:bg-secondary-50 transition-all flex items-center justify-center gap-2 w-full"
@@ -377,10 +449,17 @@ const handleImageUpload = async (e) => {
                       className="flex-1 px-4 py-2 border border-secondary-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && e.target.value.trim()) {
-                          setTempProfileData(prev => ({
-                            ...prev,
-                            skills: [...prev.skills, e.target.value.trim()]
-                          }));
+                          const newSkill = e.target.value.trim();
+                          console.log('Adding skill via Enter:', newSkill);
+                          console.log('Current skills before adding:', tempProfileData.skills);
+                          setTempProfileData(prev => {
+                            const updated = {
+                              ...prev,
+                              skills: [...prev.skills, newSkill]
+                            };
+                            console.log('Updated temp skills after adding:', updated.skills);
+                            return updated;
+                          });
                           e.target.value = '';
                         }
                       }}
@@ -390,10 +469,17 @@ const handleImageUpload = async (e) => {
                       onClick={() => {
                         const input = skillInputRef.current;
                         if (input && input.value.trim()) {
-                          setTempProfileData(prev => ({
-                            ...prev,
-                            skills: [...prev.skills, input.value.trim()]
-                          }));
+                          const newSkill = input.value.trim();
+                          console.log('Adding skill via button:', newSkill);
+                          console.log('Current skills before adding:', tempProfileData.skills);
+                          setTempProfileData(prev => {
+                            const updated = {
+                              ...prev,
+                              skills: [...prev.skills, newSkill]
+                            };
+                            console.log('Updated temp skills after adding:', updated.skills);
+                            return updated;
+                          });
                           input.value = '';
                         }
                       }}

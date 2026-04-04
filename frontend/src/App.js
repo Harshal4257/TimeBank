@@ -17,6 +17,7 @@ const Marketplace = lazy(() => import('./pages/Marketplace'));
 const SeekerHomePage = lazy(() => import('./pages/SeekerHomePage'));
 const PosterDashboard = lazy(() => import('./pages/PosterDashboard'));
 const PosterJobDetail = lazy(() => import('./pages/PosterJobDetail'));
+const EditJob = lazy(() => import('./pages/EditJob'));
 const SeekerJobDetail = lazy(() => import('./pages/SeekerJobDetail'));
 const PosterApplicants = lazy(() => import('./pages/PosterApplicants'));
 const Profile = lazy(() => import('./pages/Profile'));
@@ -108,7 +109,18 @@ function AppContent() {
             path="/profile/:userId?"
             element={isAuthenticated ? <SeekerProfile /> : <Navigate to="/login" />}
           />
-
+          <Route
+            path="/poster/applicants"
+            element={isAuthenticated ? <PosterApplicants /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/poster/applicants/:applicantId"
+            element={isAuthenticated ? <PosterApplicants /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/poster/applicants/:applicantId/:jobId"
+            element={isAuthenticated ? <PosterApplicants /> : <Navigate to="/login" />}
+          />
           {/* POSTER ROUTES */}
           <Route
             path="/poster/dashboard"
@@ -117,10 +129,6 @@ function AppContent() {
           <Route
             path="/poster/jobs"
             element={isAuthenticated ? <PosterDashboard /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/poster/applicants"
-            element={isAuthenticated ? <PosterApplicants /> : <Navigate to="/login" />}
           />
           <Route
             path="/poster/messages"
@@ -143,8 +151,8 @@ function AppContent() {
             element={isAuthenticated ? <PosterJobDetail /> : <Navigate to="/login" />}
           />
           <Route
-            path="/poster/job/:id/edit"
-            element={isAuthenticated ? <PosterPostJob /> : <Navigate to="/login" />}
+            path="/poster/job/:jobId/edit"
+            element={isAuthenticated ? <EditJob /> : <Navigate to="/login" />}
           />
           <Route
             path="/poster/profile/:userId?"

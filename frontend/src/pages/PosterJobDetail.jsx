@@ -8,6 +8,7 @@ import {
 import API from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import { initiatePayment } from '../utils/razorpay';
+import TimeDisplay from '../components/TimeDisplay';
 
 const PosterJobDetail = () => {
   const { jobId } = useParams();
@@ -24,6 +25,13 @@ const PosterJobDetail = () => {
   const [posterInstructions, setPosterInstructions] = useState('');
   const [posterFiles, setPosterFiles] = useState([]);
   const [acceptLoading, setAcceptLoading] = useState(false);
+
+  // Edit files modal state
+  const [showEditFilesModal, setShowEditFilesModal] = useState(false);
+  const [editingApplicant, setEditingApplicant] = useState(null);
+  const [editedInstructions, setEditedInstructions] = useState('');
+  const [editedFiles, setEditedFiles] = useState([]);
+  const [editFilesLoading, setEditFilesLoading] = useState(false);
 
   const fetchJobDetails = useCallback(async () => {
     try {
@@ -64,25 +72,328 @@ const PosterJobDetail = () => {
     setShowAcceptModal(true);
   };
 
+  // Open edit files modal
+  const handleEditFilesClick = (applicant) => {
+    setEditingApplicant(applicant);
+    setEditedInstructions(applicant.posterInstructions || '');
+    setEditedFiles([]); // Start with empty, user can add new files
+    setShowEditFilesModal(true);
+  };
+
+  // Submit edited files and instructions
+  const handleEditFilesSubmit = async () => {
+    try {
+      setEditFilesLoading(true);
+      
+      if (!editingApplicant || !editingApplicant._id) {
+        alert('Invalid applicant selected.');
+        return;
+      }
+      
+      console.log('Editing files for applicant:', editingApplicant._id);
+      console.log('New instructions:', editedInstructions);
+      console.log('New files:', editedFiles);
+      
+      // Update instructions first
+      const updateData = {
+        posterInstructions: editedInstructions,
+        applicantId: editingApplicant._id,
+        jobId: jobId,
+        seekerId: editingApplicant.userId || editingApplicant.seekerId,
+        seekerEmail: editingApplicant.email,
+        hasFiles: editedFiles.length > 0,
+        updatedAt: new Date().toISOString()
+      };
+      
+      await API.put(`/applications/${editingApplicant._id}/update-instructions`, updateData);
+      console.log('Instructions updated successfully');
+      
+      // If there are new files, upload them
+      if (editedFiles.length > 0) {
+        try {
+          const uploadResult = await uploadFilesWithFallback(editingApplicant._id, editedFiles);
+          if (uploadResult.fallback) {
+            console.log('New files saved with fallback method');
+            alert('Instructions updated! Files saved as metadata only (cloud storage not configured).');
+          } else {
+            console.log('New files uploaded successfully');
+            alert('Instructions and files updated successfully!');
+          }
+        } catch (fileError) {
+          console.warn('File upload failed:', fileError);
+          alert('Instructions updated! However, file upload failed. Please try again.');
+        }
+      } else {
+        setShowEditFilesModal(false);
+        alert('Instructions updated successfully!');
+        fetchJobDetails();
+      }
+      
+      setShowEditFilesModal(false);
+      alert('Instructions and files updated successfully!');
+      fetchJobDetails();
+      
+    } catch (err) {
+      console.error('Edit files error:', err);
+      alert('Failed to update files and instructions.');
+    } finally {
+      setEditFilesLoading(false);
+    }
+  };
+
   // Submit accept with instructions + files
   const handleAcceptSubmit = async () => {
     try {
       setAcceptLoading(true);
-      const formData = new FormData();
-      formData.append('posterInstructions', posterInstructions);
-      if (posterFiles.length > 0) {
-        posterFiles.forEach(file => formData.append('files', file));
+      
+      // Validation
+      if (!posterInstructions.trim()) {
+        alert('Please provide work instructions for the applicant.');
+        return;
       }
-      await API.put(`/applications/${selectedApplicant._id}/accept`, formData);
-
-      setShowAcceptModal(false);
-      alert('Applicant accepted and instructions sent!');
-      fetchJobDetails();
+      
+      if (!selectedApplicant || !selectedApplicant._id) {
+        alert('Invalid applicant selected.');
+        return;
+      }
+      
+      console.log('Accepting applicant:', selectedApplicant._id);
+      console.log('Instructions:', posterInstructions);
+      console.log('Files:', posterFiles);
+      console.log('Cloudinary should be configured with API keys');
+      
+      // Try with simpler data structure first (no files)
+      const acceptData = {
+        posterInstructions: posterInstructions,
+        applicantId: selectedApplicant._id,
+        jobId: jobId,
+        seekerId: selectedApplicant.userId || selectedApplicant.seekerId,
+        seekerEmail: selectedApplicant.email,
+        acceptedAt: new Date().toISOString(),
+        status: 'accepted',
+        hasFiles: posterFiles.length > 0
+      };
+      
+      console.log('Accept data:', acceptData);
+      
+      // First try without files
+      try {
+        const response = await API.put(`/applications/${selectedApplicant._id}/accept`, acceptData);
+        console.log('Accept response (no files):', response);
+        
+        // If successful and there are files, try to upload files separately
+        if (posterFiles.length > 0) {
+          console.log('Attempting to upload files with Cloudinary...');
+          try {
+            const uploadResult = await uploadFilesWithFallback(selectedApplicant._id, posterFiles);
+            if (uploadResult.fallback) {
+              console.log('Files saved with fallback method');
+              alert('Applicant accepted! Instructions sent. Files saved as metadata only (cloud storage not configured).');
+            } else {
+              console.log('Files uploaded successfully to Cloudinary');
+              alert('Applicant accepted! Instructions and files have been sent to the seeker.');
+            }
+          } catch (fileError) {
+            console.error('File upload failed:', fileError);
+            console.log('This might be a Cloudinary configuration issue. Check backend logs.');
+            alert('Applicant accepted! Instructions sent. However, file upload failed. Check Cloudinary configuration.');
+          }
+        } else {
+          setShowAcceptModal(false);
+          alert('Applicant accepted! Instructions have been sent to the seeker.');
+          fetchJobDetails();
+        }
+        
+      } catch (acceptError) {
+        console.error('Accept failed:', acceptError);
+        
+        // If accept fails, try with FormData (might be a different endpoint issue)
+        if (acceptError.response?.status !== 500) {
+          throw acceptError;
+        }
+        
+        console.log('Trying with FormData...');
+        await tryWithFormData();
+      }
+      
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to accept applicant');
+      console.error('Accept applicant error:', err);
+      console.error('Error response:', err.response);
+      
+      let errorMessage = 'Failed to accept applicant';
+      if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.status === 404) {
+        errorMessage = 'Accept endpoint not found. Please check backend API.';
+      } else if (err.response?.status === 401) {
+        errorMessage = 'Authentication expired. Please login again.';
+      } else if (err.response?.status === 403) {
+        errorMessage = 'You do not have permission to accept this applicant.';
+      } else if (err.code === 'ECONNREFUSED') {
+        errorMessage = 'Cannot connect to server. Please check if backend is running.';
+      } else if (err.code === 'ECONNABORTED') {
+        errorMessage = 'Request timed out. Please try again.';
+      } else if (err.message?.includes('api_key')) {
+        errorMessage = 'Cloudinary API issue. Check if API keys are correctly configured in backend .env file.';
+      }
+      
+      alert(errorMessage);
     } finally {
       setAcceptLoading(false);
     }
+  };
+
+  // Separate file upload function
+  const uploadFilesSeparately = async (applicantId, files) => {
+    try {
+      const formData = new FormData();
+      formData.append('applicantId', applicantId);
+      formData.append('jobId', jobId);
+      
+      files.forEach((file, index) => {
+        formData.append(`files`, file);
+        formData.append(`fileNames[${index}]`, file.name);
+        formData.append(`fileSizes[${index}]`, file.size);
+        formData.append(`fileTypes[${index}]`, file.type);
+      });
+      
+      console.log('Uploading files with FormData:');
+      for (let [key, value] of formData.entries()) {
+        console.log(key, value);
+      }
+      
+      const response = await API.post(`/applications/${applicantId}/upload-files`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        timeout: 60000 // Increase timeout for file uploads
+      });
+      
+      console.log('File upload response:', response);
+      return response.data;
+    } catch (error) {
+      console.error('File upload error details:', error);
+      console.error('Error response:', error.response);
+      
+      // More detailed error handling
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('File upload timed out. Please try with smaller files or check your connection.');
+      } else if (error.response?.status === 413) {
+        throw new Error('Files too large. Please upload smaller files.');
+      } else if (error.response?.status === 500) {
+        const errorData = error.response.data;
+        if (errorData.message?.includes('api_key')) {
+          throw new Error('File storage service not configured. Files will be saved locally. Please contact administrator to set up cloud storage.');
+        } else {
+          throw new Error('Server error during file upload. Files will be saved locally.');
+        }
+      } else if (error.response?.status === 404) {
+        throw new Error('File upload endpoint not found. Please check backend configuration.');
+      } else if (error.message?.includes('Network Error')) {
+        throw new Error('Network connection failed. Please check your internet connection.');
+      } else {
+        throw new Error(`File upload failed: ${error.message || 'Unknown error'}`);
+      }
+    }
+  };
+
+  // Fallback file saving function (when cloud storage fails)
+  const saveFileInfoSeparately = async (applicantId, files) => {
+    try {
+      // Save file metadata without uploading actual files
+      const fileInfo = files.map(file => ({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        uploadedAt: new Date().toISOString(),
+        status: 'pending_upload', // Indicates file needs to be uploaded later
+        note: 'Cloud storage not configured - file saved as metadata only'
+      }));
+      
+      const response = await API.post(`/applications/${applicantId}/save-file-info`, {
+        applicantId,
+        jobId,
+        files: fileInfo,
+        note: 'Cloud storage service not configured. Files saved as metadata only.'
+      });
+      
+      console.log('File info saved (no upload):', response);
+      return response.data;
+    } catch (error) {
+      console.error('Save file info error:', error);
+      throw new Error('Failed to save file information.');
+    }
+  };
+
+  // Enhanced file upload with fallback
+  const uploadFilesWithFallback = async (applicantId, files) => {
+    try {
+      // Try actual upload first
+      return await uploadFilesSeparately(applicantId, files);
+    } catch (uploadError) {
+      console.warn('File upload failed, trying fallback:', uploadError);
+      
+      // If upload fails due to cloud storage issues, save file info only
+      if (uploadError.message?.includes('api_key') || 
+          uploadError.message?.includes('storage') ||
+          uploadError.message?.includes('configured')) {
+        try {
+          await saveFileInfoSeparately(applicantId, files);
+          console.log('Files saved as metadata only');
+          return { 
+            success: true, 
+            fallback: true, 
+            message: 'Files saved as metadata only. Cloud storage not configured.' 
+          };
+        } catch (fallbackError) {
+          console.error('Fallback also failed:', fallbackError);
+          throw new Error('Both file upload and metadata saving failed.');
+        }
+      } else {
+        // For other errors, don't use fallback
+        throw uploadError;
+      }
+    }
+  };
+  const tryWithFormData = async () => {
+    const formData = new FormData();
+    
+    // Add instructions and metadata
+    formData.append('posterInstructions', posterInstructions);
+    formData.append('applicantId', selectedApplicant._id);
+    formData.append('jobId', jobId);
+    formData.append('seekerId', selectedApplicant.userId || selectedApplicant.seekerId);
+    formData.append('seekerEmail', selectedApplicant.email);
+    
+    // Add files with proper metadata
+    if (posterFiles.length > 0) {
+      posterFiles.forEach((file, index) => {
+        formData.append(`files`, file);
+        formData.append(`fileNames[${index}]`, file.name);
+        formData.append(`fileSizes[${index}]`, file.size);
+        formData.append(`fileTypes[${index}]`, file.type);
+      });
+    }
+    
+    // Add acceptance metadata
+    formData.append('acceptedAt', new Date().toISOString());
+    formData.append('status', 'accepted');
+    
+    console.log('FormData contents:');
+    for (let [key, value] of formData.entries()) {
+      console.log(key, value);
+    }
+    
+    const response = await API.put(`/applications/${selectedApplicant._id}/accept`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+    
+    console.log('Accept response (FormData):', response);
+    setShowAcceptModal(false);
+    alert('Applicant accepted! Instructions and files have been sent to the seeker.');
+    fetchJobDetails();
   };
 
   const handleReject = async (applicantId) => {
@@ -109,7 +420,12 @@ const PosterJobDetail = () => {
         return;
       }
       await API.put(`/jobs/${jobId}/status`, { status: action === 'close' ? 'Closed' : 'Open' });
-      fetchJobDetails();
+      if (action === 'close') {
+        alert('Job closed successfully!');
+        navigate('/poster/dashboard');
+      } else {
+        fetchJobDetails();
+      }
     } catch (err) {
       alert(`Failed to ${action} job.`);
     }
@@ -209,15 +525,34 @@ const PosterJobDetail = () => {
       )}
 
       {/* Poster Files */}
-      {applicant.posterFiles?.length > 0 && (
+      {(applicant.posterFiles?.length > 0 || applicant.posterInstructions) && (
         <div className="mb-4 p-3 bg-slate-50 border border-slate-200 rounded-lg">
-          <p className="text-sm font-bold text-slate-700 mb-2">📁 Files you shared:</p>
-          {applicant.posterFiles.map((file, i) => (
-            <a key={i} href={file.url} target="_blank" rel="noreferrer"
-              className="flex items-center gap-2 text-sm text-blue-600 hover:underline mb-1">
-              <Download size={14} /> {file.originalName || `File ${i + 1}`}
-            </a>
-          ))}
+          <div className="flex justify-between items-start mb-2">
+            <p className="text-sm font-bold text-slate-700">📁 Files & Instructions:</p>
+            <button
+              onClick={() => handleEditFilesClick(applicant)}
+              className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-xs font-medium"
+            >
+              <Edit size={12} /> Edit Files
+            </button>
+          </div>
+          
+          {applicant.posterInstructions && (
+            <div className="mb-2 p-2 bg-white rounded border border-slate-200">
+              <p className="text-xs text-slate-600">{applicant.posterInstructions}</p>
+            </div>
+          )}
+          
+          {applicant.posterFiles?.length > 0 && (
+            <div className="space-y-1">
+              {applicant.posterFiles.map((file, i) => (
+                <a key={i} href={file.url} target="_blank" rel="noreferrer"
+                  className="flex items-center gap-2 text-sm text-blue-600 hover:underline">
+                  <Download size={14} /> {file.originalName || `File ${i + 1}`}
+                </a>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -275,7 +610,14 @@ const PosterJobDetail = () => {
         )}
 
         <Link
-          to={`/seeker/profile/${applicant.userId}`}
+          to={`/seeker/profile/${applicant.userId || applicant.seekerId || applicant._id}`}
+          onClick={() => {
+            console.log('Clicked View Profile for applicant:', applicant);
+            console.log('Applicant userId:', applicant.userId);
+            console.log('Applicant seekerId:', applicant.seekerId);
+            console.log('Applicant _id:', applicant._id);
+            console.log('Final profile URL:', `/seeker/profile/${applicant.userId || applicant.seekerId || applicant._id}`);
+          }}
           className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 text-sm font-medium"
         >
           <User size={16} /> View Profile
@@ -291,7 +633,7 @@ const PosterJobDetail = () => {
         {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div className="flex items-center gap-4">
-            <button onClick={() => navigate(-1)} className="p-3 bg-white border border-slate-200 rounded-xl text-slate-600 hover:text-emerald-600 transition-all shadow-sm">
+            <button onClick={() => navigate('/poster/dashboard')} className="p-3 bg-white border border-slate-200 rounded-xl text-slate-600 hover:text-emerald-600 transition-all shadow-sm">
               <ArrowLeft size={20} />
             </button>
             <div>
@@ -486,6 +828,106 @@ const PosterJobDetail = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Edit Files Modal */}
+      {showEditFilesModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-lg w-full shadow-2xl">
+            <h3 className="text-xl font-black text-slate-900 mb-2">Edit Files & Instructions</h3>
+            <p className="text-slate-500 text-sm mb-6">Update work instructions and add new files for {editingApplicant?.name}.</p>
+
+            {/* Instructions */}
+            <div className="mb-6">
+              <label className="block text-sm font-bold text-slate-700 mb-2">
+                Work Instructions <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={editedInstructions}
+                onChange={(e) => setEditedInstructions(e.target.value)}
+                rows={4}
+                className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                placeholder="Describe the work requirements, deadlines, and expectations..."
+              />
+            </div>
+
+            {/* File Upload */}
+            <div className="mb-6">
+              <label className="block text-sm font-bold text-slate-700 mb-2">
+                Add New Files <span className="text-slate-400 font-normal">(optional)</span>
+              </label>
+              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <Upload className="w-8 h-8 mb-3 text-slate-400" />
+                  <p className="mb-2 text-sm text-slate-600">
+                    <span className="font-semibold">Click to upload</span> or drag and drop
+                  </p>
+                  <p className="text-xs text-slate-500">ZIP, PDF, DOCX, PNG, JPG (MAX. 10MB)</p>
+                </div>
+                <input
+                  type="file"
+                  multiple
+                  className="hidden"
+                  accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.zip,.rar,.txt,.xlsx,.pptx"
+                  onChange={(e) => setEditedFiles(Array.from(e.target.files))}
+                />
+              </label>
+              {editedFiles.length > 0 && (
+                <div className="mt-2">
+                  {editedFiles.map((f, i) => (
+                    <p key={i} className="text-xs text-slate-600">📄 {f.name}</p>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Current Files Info */}
+            {editingApplicant?.posterFiles?.length > 0 && (
+              <div className="mb-6 p-3 bg-slate-50 rounded-lg">
+                <p className="text-xs font-medium text-slate-700 mb-2">Current Files:</p>
+                {editingApplicant.posterFiles.map((file, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs text-slate-600 py-1">
+                    <span>📄 {file.originalName || `File ${i + 1}`}</span>
+                    <a href={file.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                      View
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowEditFilesModal(false)}
+                className="flex-1 px-4 py-3 border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditFilesSubmit}
+                disabled={editFilesLoading || !editedInstructions.trim()}
+                className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50"
+              >
+                {editFilesLoading ? 'Updating...' : 'Update Files'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Time Tracking Section */}
+      {job && (
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <TimeDisplay
+            task={job}
+            onVerificationUpdate={(verificationData) => {
+              console.log('Time verification updated:', verificationData);
+              // You can refresh the job data or show a notification here
+              fetchJobDetails();
+            }}
+          />
         </div>
       )}
     </div>
