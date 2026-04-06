@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Briefcase, Clock, DollarSign, Mail, User, ArrowLeft, Upload, Download, CheckCircle, IndianRupee, FileText } from 'lucide-react';
+import { Briefcase, Clock, Mail, User, ArrowLeft, Upload, Download, IndianRupee, FileText, Edit } from 'lucide-react';
 import API from '../services/api';
 import { AuthContext } from '../context/AuthContext';
+import TimeDisplay from '../components/TimeDisplay';
 
 const SeekerJobDetail = () => {
   const { jobId } = useParams();
@@ -13,18 +14,21 @@ const SeekerJobDetail = () => {
   const [applying, setApplying] = useState(false);
   const [application, setApplication] = useState(null);
 
-  // Submission state
   const [showSubmitForm, setShowSubmitForm] = useState(false);
   const [submissionNotes, setSubmissionNotes] = useState('');
   const [submissionFiles, setSubmissionFiles] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+
+  const [showEditSubmissionModal, setShowEditSubmissionModal] = useState(false);
+  const [editedNotes, setEditedNotes] = useState('');
+  const [editedSubmissionFiles, setEditedSubmissionFiles] = useState([]);
+  const [editSubmissionLoading, setEditSubmissionLoading] = useState(false);
 
   const fetchData = async () => {
     try {
       setLoading(true);
       const jobRes = await API.get(`/jobs/${jobId}`);
       setJob(jobRes.data);
-
       try {
         const appsRes = await API.get('/applications/my');
         const apps = Array.isArray(appsRes.data) ? appsRes.data : [];
@@ -46,7 +50,7 @@ const SeekerJobDetail = () => {
 
   useEffect(() => {
     fetchData();
-  }, [jobId]);
+  }, [jobId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleApply = async () => {
     if (!job) return;
@@ -82,11 +86,10 @@ const SeekerJobDetail = () => {
       setSubmitting(true);
       const formData = new FormData();
       formData.append('submissionNotes', submissionNotes);
-      if (submissionFiles.length > 0) {
-        submissionFiles.forEach(file => formData.append('files', file));
-      }
-      await API.put(`/applications/${application._id}/submit`, formData);
-
+      submissionFiles.forEach(file => formData.append('files', file));
+      await API.put(`/applications/${application._id}/submit`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       alert('Work submitted successfully! The poster will review and pay you.');
       setShowSubmitForm(false);
       fetchData();
@@ -94,6 +97,50 @@ const SeekerJobDetail = () => {
       alert(err.response?.data?.message || 'Failed to submit work.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleEditSubmission = async () => {
+    if (!editedNotes.trim() && editedSubmissionFiles.length === 0) {
+      alert('Please add notes or upload files.');
+      return;
+    }
+    try {
+      setEditSubmissionLoading(true);
+      const formData = new FormData();
+      formData.append('submissionNotes', editedNotes);
+      editedSubmissionFiles.forEach(file => formData.append('files', file));
+      await API.put(`/applications/${application._id}/resubmit`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      alert('Submission updated successfully!');
+      setShowEditSubmissionModal(false);
+      setEditedNotes('');
+      setEditedSubmissionFiles([]);
+      fetchData();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to update submission.');
+    } finally {
+      setEditSubmissionLoading(false);
+    }
+  };
+
+  const handleDownload = async (fileUrl, originalName) => {
+    try {
+      const params = new URLSearchParams({ url: fileUrl, filename: originalName || 'download' });
+      const response = await API.get(`/applications/download-file?${params}`, { responseType: 'blob' });
+      const blob = new Blob([response.data]);
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = originalName || 'download';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error('Download failed:', err);
+      alert('Download failed. Please try again.');
     }
   };
 
@@ -124,8 +171,9 @@ const SeekerJobDetail = () => {
   const isSubmitted = appStatus === 'submitted';
   const isAccepted = appStatus === 'accepted';
   const isPending = appStatus === 'pending';
-  const isApplied = !!application && !isCompleted;
-  const postedDate = job.createdAt ? new Date(job.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently';
+  const postedDate = job.createdAt
+    ? new Date(job.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    : 'Recently';
 
   return (
     <div className="min-h-screen bg-[#E6EEF2]">
@@ -134,7 +182,13 @@ const SeekerJobDetail = () => {
           <ArrowLeft size={18} /> Back to jobs
         </button>
 
-        {/* ✅ Accepted — Show work instructions & files */}
+        {/* ✅ Time Tracking — shown to seeker when accepted/submitted/completed */}
+        {(isAccepted || isSubmitted || isCompleted) && application && (
+          <div className="mb-6">
+            <TimeDisplay application={application} job={job} role="seeker" />
+          </div>
+        )}
+
         {(isAccepted || isSubmitted || isCompleted) && (
           <div className={`mb-6 rounded-2xl p-6 border ${
             isCompleted ? 'bg-emerald-50 border-emerald-200' :
@@ -143,82 +197,89 @@ const SeekerJobDetail = () => {
           }`}>
             <h2 className={`text-lg font-black mb-3 ${
               isCompleted ? 'text-emerald-800' :
-              isSubmitted ? 'text-purple-800' :
-              'text-blue-800'
+              isSubmitted ? 'text-purple-800' : 'text-blue-800'
             }`}>
               {isCompleted ? '✅ Job Completed & Paid!' :
                isSubmitted ? '📦 Work Submitted — Awaiting Payment' :
                '🎉 You Got the Job!'}
             </h2>
 
-            {/* Payment info */}
             {isCompleted && application?.paymentAmount > 0 && (
               <div className="flex items-center gap-2 mb-3 p-3 bg-emerald-100 rounded-xl">
                 <IndianRupee size={18} className="text-emerald-600" />
                 <span className="text-emerald-700 font-bold text-lg">
-                  ₹{application.paymentAmount} received on {application.paidAt ? new Date(application.paidAt).toLocaleDateString('en-IN') : 'N/A'}
+                  ₹{application.paymentAmount} received on{' '}
+                  {application.paidAt ? new Date(application.paidAt).toLocaleDateString('en-IN') : 'N/A'}
                 </span>
               </div>
             )}
 
-            {/* Poster Instructions */}
-            <div className="mb-4">
-              <p className="text-sm font-bold text-slate-700 mb-2">📋 Work Instructions from Poster:</p>
-              <div className="p-3 bg-white rounded-xl border border-slate-200">
-                <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
-                  {application?.posterInstructions || "No instructions provided by the poster."}
-                </p>
+            {application?.posterInstructions && (
+              <div className="mb-4">
+                <p className="text-sm font-bold text-slate-700 mb-2">📋 Work Instructions from Poster:</p>
+                <div className="p-3 bg-white rounded-xl border border-slate-200">
+                  <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
+                    {application.posterInstructions}
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Poster Files */}
             {application?.posterFiles?.length > 0 && (
               <div className="mb-4">
                 <p className="text-sm font-bold text-slate-700 mb-2">📁 Project Files to Work On:</p>
                 <div className="space-y-2">
                   {application.posterFiles.map((file, i) => (
-                      <a
-                          key={i}
-                          href={file.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50 transition-all"
-                      >
-                          <Download size={18} className="text-emerald-600" />
-                          <span className="text-slate-700 text-sm font-medium">{file.originalName || `File ${i + 1}`}</span>
-                          <span className="ml-auto text-xs text-emerald-600 font-bold">Download</span>
-                      </a>
+                    <button
+                      key={i}
+                      onClick={() => handleDownload(file.url, file.originalName)}
+                      className="w-full flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50 transition-all text-left"
+                    >
+                      <Download size={18} className="text-emerald-600 shrink-0" />
+                      <span className="text-slate-700 text-sm font-medium truncate">{file.originalName || `File ${i + 1}`}</span>
+                      <span className="ml-auto text-xs text-emerald-600 font-bold shrink-0">Download</span>
+                    </button>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Submitted files (if already submitted) */}
-            {(isSubmitted || isCompleted) && application?.submissionFiles?.length > 0 && (
-              <div className="mb-4">
-                <p className="text-sm font-bold text-slate-700 mb-2">✅ Your Submitted Files:</p>
-                <div className="space-y-2">
-                  {application.submissionFiles.map((file, i) => (
-                    <div key={i} className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl">
-                      <FileText size={18} className="text-purple-600" />
-                      <span className="text-slate-700 text-sm">{file.originalName || `File ${i + 1}`}</span>
-                    </div>
-                  ))}
+            {(isSubmitted || isCompleted) && (
+              <div className="mb-4 p-4 bg-white rounded-xl border border-purple-200">
+                <div className="flex justify-between items-center mb-3">
+                  <p className="text-sm font-bold text-purple-800">📦 Your Submission:</p>
+                  {isSubmitted && (
+                    <button
+                      onClick={() => {
+                        setEditedNotes(application?.submissionNotes || '');
+                        setEditedSubmissionFiles([]);
+                        setShowEditSubmissionModal(true);
+                      }}
+                      className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 text-xs font-medium"
+                    >
+                      <Edit size={12} /> Edit Submission
+                    </button>
+                  )}
                 </div>
+                {application?.submissionNotes && (
+                  <div className="mb-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
+                    <p className="text-slate-600 text-sm">{application.submissionNotes}</p>
+                  </div>
+                )}
+                {application?.submissionFiles?.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-bold text-slate-600 mb-1">📎 Submitted Files:</p>
+                    {application.submissionFiles.map((file, i) => (
+                      <div key={i} className="flex items-center gap-3 p-2 bg-purple-50 border border-purple-100 rounded-lg">
+                        <FileText size={16} className="text-purple-600 shrink-0" />
+                        <span className="text-slate-700 text-sm truncate">{file.originalName || `File ${i + 1}`}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Submission notes */}
-            {(isSubmitted || isCompleted) && application?.submissionNotes && (
-              <div className="mb-4">
-                <p className="text-sm font-bold text-slate-700 mb-2">📝 Your Submission Notes:</p>
-                <div className="p-3 bg-white rounded-xl border border-slate-200">
-                  <p className="text-slate-600 text-sm">{application.submissionNotes}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Submit Work Button */}
             {isAccepted && !showSubmitForm && (
               <button
                 onClick={() => setShowSubmitForm(true)}
@@ -228,11 +289,9 @@ const SeekerJobDetail = () => {
               </button>
             )}
 
-            {/* Submit Form */}
             {isAccepted && showSubmitForm && (
               <div className="mt-4 p-4 bg-white rounded-xl border border-slate-200">
                 <h3 className="font-bold text-slate-900 mb-4">Submit Your Work</h3>
-
                 <div className="mb-4">
                   <label className="block text-sm font-bold text-slate-700 mb-2">
                     Submission Notes <span className="text-red-500">*</span>
@@ -240,12 +299,11 @@ const SeekerJobDetail = () => {
                   <textarea
                     value={submissionNotes}
                     onChange={(e) => setSubmissionNotes(e.target.value)}
-                    placeholder="Describe what you've done, any important notes, links to your work (GitHub, Google Drive, etc.)..."
+                    placeholder="Describe what you've done, any important notes, links to your work..."
                     rows={4}
                     className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none text-sm"
                   />
                 </div>
-
                 <div className="mb-4">
                   <label className="block text-sm font-bold text-slate-700 mb-2">
                     Upload Completed Files <span className="text-slate-400 font-normal">(optional)</span>
@@ -271,19 +329,11 @@ const SeekerJobDetail = () => {
                     )}
                   </div>
                 </div>
-
                 <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowSubmitForm(false)}
-                    className="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 text-sm font-medium"
-                  >
+                  <button onClick={() => setShowSubmitForm(false)} className="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 text-sm font-medium">
                     Cancel
                   </button>
-                  <button
-                    onClick={handleSubmitWork}
-                    disabled={submitting}
-                    className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50 text-sm"
-                  >
+                  <button onClick={handleSubmitWork} disabled={submitting} className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50 text-sm">
                     {submitting ? 'Submitting...' : '🚀 Submit Work'}
                   </button>
                 </div>
@@ -292,9 +342,7 @@ const SeekerJobDetail = () => {
           </div>
         )}
 
-        {/* Job Details Card */}
         <div className="bg-white rounded-3xl shadow-xl border border-white p-8 space-y-8">
-          {/* Job header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-slate-900 mb-1">{job.title}</h1>
@@ -314,13 +362,10 @@ const SeekerJobDetail = () => {
                   <span>{job.hours} hrs total</span>
                 </p>
               )}
-              <p className="text-emerald-600 font-black">
-                Total: ₹{job.hourlyRate * job.hours}
-              </p>
+              <p className="text-emerald-600 font-black">Total: ₹{job.hourlyRate * job.hours}</p>
             </div>
           </div>
 
-          {/* Poster info */}
           <div className="bg-slate-50 rounded-2xl p-5 flex items-center gap-4">
             <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
               <User size={22} className="text-emerald-700" />
@@ -336,7 +381,6 @@ const SeekerJobDetail = () => {
             </div>
           </div>
 
-          {/* Job details */}
           <div className="space-y-5">
             {job.description && (
               <div>
@@ -344,29 +388,26 @@ const SeekerJobDetail = () => {
                 <p className="text-slate-600 leading-relaxed">{job.description}</p>
               </div>
             )}
-
             {job.requiredSkills?.length > 0 && (
               <div>
                 <h2 className="text-sm font-semibold text-slate-700 mb-2">Required Skills</h2>
                 <div className="flex flex-wrap gap-2">
                   {job.requiredSkills.map((skill, i) => (
-                    <span key={i} className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-medium">
-                      {skill}
-                    </span>
+                    <span key={i} className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-medium">{skill}</span>
                   ))}
                 </div>
               </div>
             )}
-
             {job.deadline && (
               <div>
                 <h2 className="text-sm font-semibold text-slate-700 mb-1">Deadline</h2>
-                <p className="text-slate-600 text-sm">{new Date(job.deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                <p className="text-slate-600 text-sm">
+                  {new Date(job.deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
               </div>
             )}
           </div>
 
-          {/* Apply / status section */}
           <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
             {appStatus && (
               <span className={`px-3 py-1 rounded-full text-sm font-bold ${
@@ -379,25 +420,17 @@ const SeekerJobDetail = () => {
                 {isCompleted ? '✅ Completed & Paid' :
                  isSubmitted ? '📦 Work Submitted' :
                  isAccepted ? '🎉 Accepted' :
-                 isPending ? '⏳ Pending Review' :
-                 '❌ Rejected'}
+                 isPending ? '⏳ Pending Review' : '❌ Rejected'}
               </span>
             )}
             <div className="flex gap-3 ml-auto">
               {isPending && (
-                <button
-                  onClick={handleUnapply}
-                  className="px-4 py-2 rounded-xl border border-red-300 text-red-600 hover:bg-red-50 text-sm font-medium"
-                >
+                <button onClick={handleUnapply} className="px-4 py-2 rounded-xl border border-red-300 text-red-600 hover:bg-red-50 text-sm font-medium">
                   Remove Application
                 </button>
               )}
               {!application && (
-                <button
-                  onClick={handleApply}
-                  disabled={applying}
-                  className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 disabled:opacity-60"
-                >
+                <button onClick={handleApply} disabled={applying} className="px-6 py-3 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 disabled:opacity-60">
                   {applying ? 'Submitting...' : 'Apply for this job'}
                 </button>
               )}
@@ -405,6 +438,69 @@ const SeekerJobDetail = () => {
           </div>
         </div>
       </div>
+
+      {/* Edit Submission Modal */}
+      {showEditSubmissionModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-lg w-full shadow-2xl">
+            <h3 className="text-xl font-black text-slate-900 mb-2">Edit Your Submission</h3>
+            <p className="text-slate-500 text-sm mb-6">Update your submission notes and replace uploaded files.</p>
+            <div className="mb-4">
+              <label className="block text-sm font-bold text-slate-700 mb-2">
+                Submission Notes <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={editedNotes}
+                onChange={(e) => setEditedNotes(e.target.value)}
+                placeholder="Describe your work, add links, notes..."
+                rows={4}
+                className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none text-sm"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-bold text-slate-700 mb-2">
+                Replace Files <span className="text-slate-400 font-normal">(optional)</span>
+              </label>
+              <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:bg-slate-50 transition-colors">
+                <Upload className="w-7 h-7 mb-2 text-slate-400" />
+                <p className="text-sm text-slate-600"><span className="font-semibold">Click to upload</span> new files</p>
+                <p className="text-xs text-slate-500 mt-1">ZIP, PDF, DOCX, PNG, JPG</p>
+                <input type="file" multiple className="hidden" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.zip,.rar,.txt,.xlsx,.pptx"
+                  onChange={(e) => setEditedSubmissionFiles(Array.from(e.target.files))} />
+              </label>
+              {editedSubmissionFiles.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {editedSubmissionFiles.map((f, i) => <p key={i} className="text-xs text-slate-600">📄 {f.name}</p>)}
+                </div>
+              )}
+            </div>
+            {application?.submissionFiles?.length > 0 && (
+              <div className="mb-6 p-3 bg-purple-50 rounded-lg border border-purple-100">
+                <p className="text-xs font-bold text-purple-700 mb-2">Current Submitted Files:</p>
+                {application.submissionFiles.map((file, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs text-slate-600 py-1">
+                    <FileText size={12} className="text-purple-500" />
+                    <span>{file.originalName || `File ${i + 1}`}</span>
+                  </div>
+                ))}
+                {editedSubmissionFiles.length > 0 && (
+                  <p className="text-xs text-orange-600 mt-2 font-medium">⚠️ Uploading new files will replace the above.</p>
+                )}
+              </div>
+            )}
+            <div className="flex gap-3">
+              <button onClick={() => { setShowEditSubmissionModal(false); setEditedSubmissionFiles([]); }}
+                className="flex-1 px-4 py-3 border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50">
+                Cancel
+              </button>
+              <button onClick={handleEditSubmission} disabled={editSubmissionLoading || !editedNotes.trim()}
+                className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 disabled:opacity-50">
+                {editSubmissionLoading ? 'Updating...' : 'Update Submission'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

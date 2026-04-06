@@ -46,19 +46,6 @@ const SeekerProfile = () => {
       return;
     }
 
-<<<<<<< HEAD
-    // Set minimal profile Data from AuthContext only if viewing own profile
-    const initialData = {
-      ...profileData,
-      name: isOwnProfile ? (user.name || localStorage.getItem('name') || profileData.name) : '', // Empty for other users
-      email: isOwnProfile ? (user.email || localStorage.getItem('email') || profileData.email) : '', // Empty for other users
-      skills: isOwnProfile && user.skills && user.skills.length > 0 ? user.skills : profileData.skills
-    };
-    
-    console.log('Setting initial profile data:', initialData);
-    console.log('Is own profile:', isOwnProfile);
-    console.log('Initial name (should be empty for other users):', initialData.name);
-=======
     // Set minimal profile Data from AuthContext first for instant UI response
     const initialData = {
       ...profileData,
@@ -68,7 +55,6 @@ const SeekerProfile = () => {
     };
     
     console.log('Setting initial profile data:', initialData);
->>>>>>> 84bdf9f70f5ee35f85e4b39b195052c2da78df8d
     console.log('Initial skills:', initialData.skills);
     setProfileData(initialData);
 
@@ -92,24 +78,6 @@ const SeekerProfile = () => {
         const dbData = response.data;
         
         console.log('Fetched profile data from DB:', dbData);
-<<<<<<< HEAD
-        console.log('Returned user name:', dbData.name);
-        console.log('Returned user email:', dbData.email);
-        console.log('Expected userId:', userId);
-        console.log('Returned user ID:', dbData._id || dbData.id);
-        
-        // Check if we got the right user
-        if (dbData._id !== userId && dbData.id !== userId) {
-          console.error('⚠️ WRONG USER DATA RETURNED!');
-          console.error('Expected:', userId);
-          console.error('Got:', dbData._id || dbData.id);
-        }
-        
-        // Use dbData exclusively over previous fields, as DB is single source of truth!
-        const updatedData = {
-          name: dbData.name || '', // Always use DB name, fallback to empty
-          email: dbData.email || '', // Always use DB email, fallback to empty
-=======
         console.log('DB skills:', dbData.skills);
         
         // Use dbData exclusively over previous fields, as DB is single source of truth!
@@ -117,7 +85,6 @@ const SeekerProfile = () => {
           ...profileData,
           name: dbData.name || profileData.name,
           email: dbData.email || profileData.email,
->>>>>>> 84bdf9f70f5ee35f85e4b39b195052c2da78df8d
           title: dbData.currentRole || profileData.title,
           location: dbData.location || profileData.location,
           role: dbData.role || profileData.role,
@@ -127,21 +94,8 @@ const SeekerProfile = () => {
         };
         
         console.log('Setting updated profile data:', updatedData);
-<<<<<<< HEAD
-        console.log('Final name being set:', updatedData.name);
-        console.log('DB name was:', dbData.name);
-        console.log('Updated skills:', updatedData.skills);
-        
-        // Force update with new data - completely replace state
-        setProfileData(prev => {
-          console.log('Previous profile data:', prev);
-          console.log('New profile data being set:', updatedData);
-          return updatedData;
-        });
-=======
         console.log('Updated skills:', updatedData.skills);
         setProfileData(updatedData);
->>>>>>> 84bdf9f70f5ee35f85e4b39b195052c2da78df8d
       } catch (error) {
         console.error('Error fetching user profile:', error);
       }

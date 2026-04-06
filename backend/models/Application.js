@@ -21,7 +21,13 @@ const applicationSchema = new mongoose.Schema({
         default: Date.now
     },
 
-    // ✅ Poster shares work with seeker
+    // ✅ Timer starts when poster accepts
+    acceptedAt: {
+        type: Date,
+        default: null
+    },
+
+    // Poster shares work with seeker
     posterInstructions: {
         type: String,
         default: ''
@@ -34,7 +40,7 @@ const applicationSchema = new mongoose.Schema({
         }
     ],
 
-    // ✅ Seeker submits completed work
+    // Seeker submits completed work
     submissionNotes: {
         type: String,
         default: ''
@@ -51,7 +57,7 @@ const applicationSchema = new mongoose.Schema({
         default: null
     },
 
-    // ✅ Payment info
+    // Payment info
     paymentAmount: {
         type: Number,
         default: 0
