@@ -44,9 +44,23 @@ const applyForJob = async (req, res) => {
 
 const getJobApplications = async (req, res) => {
     try {
+        const job = await Job.findById(req.params.jobId);
         const applications = await Application.find({ jobId: req.params.jobId })
             .populate('seekerId', 'name email skills rating');
-        res.json(applications);
+
+        const withMatch = applications.map(app => {
+            const seekerSkills = app.seekerId?.skills || [];
+            const requiredSkills = job?.requiredSkills || [];
+            const matched = seekerSkills.filter(s =>
+                requiredSkills.map(r => r.toLowerCase()).includes(s.toLowerCase())
+            ).length;
+            const skillsMatch = requiredSkills.length > 0
+                ? Math.round((matched / requiredSkills.length) * 100)
+                : 0;
+            return { ...app.toObject(), skillsMatch };
+        });
+
+        res.json(withMatch);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
