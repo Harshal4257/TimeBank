@@ -9,14 +9,13 @@ const {
     cancelApplication,
     getPosterApplications,
     updateApplicationStatus,
-    submitWork,
-    startTimer
+    submitWork
 } = require('../controllers/applicationController');
 const { protect } = require('../middleware/authMiddleware');
 const { uploadJobFiles } = require('../config/cloudinary');
 
 // ============================================================
-// STATIC ROUTES FIRST — no /:id params
+// STATIC ROUTES FIRST
 // ============================================================
 
 router.get('/download-file', protect, async (req, res) => {
@@ -95,8 +94,32 @@ router.get('/my', protect, getMyApplications);
 router.delete('/:id', protect, cancelApplication);
 router.put('/:id/complete', protect, completeJob);
 
-// ✅ Seeker starts the timer (unlocks files and begins countdown)
-router.put('/:id/start-timer', protect, startTimer);
+// ✅ Seeker starts the timer — inline handler (no separate controller needed)
+router.put('/:id/start-timer', protect, async (req, res) => {
+    try {
+        const Application = require('../models/Application');
+        const application = await Application.findById(req.params.id);
+
+        if (!application) return res.status(404).json({ message: 'Application not found' });
+        if (application.seekerId.toString() !== req.user.id.toString()) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+        if (application.status !== 'accepted') {
+            return res.status(400).json({ message: 'Can only start timer for accepted applications' });
+        }
+        if (application.timerStartedAt) {
+            return res.status(400).json({ message: 'Timer already started' });
+        }
+
+        application.timerStartedAt = new Date();
+        await application.save();
+
+        res.json({ message: 'Timer started!', application });
+    } catch (err) {
+        console.error('Start timer error:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+});
 
 // Seeker first submission (status must be 'accepted')
 router.put('/:id/submit', protect, uploadJobFiles.array('files', 5), submitWork);
@@ -108,9 +131,7 @@ router.put('/:id/resubmit', protect, uploadJobFiles.array('files', 5), async (re
         const Application = require('../models/Application');
         const application = await Application.findById(req.params.id);
 
-        if (!application) {
-            return res.status(404).json({ message: 'Application not found' });
-        }
+        if (!application) return res.status(404).json({ message: 'Application not found' });
         if (application.seekerId.toString() !== req.user.id.toString()) {
             return res.status(401).json({ message: 'Not authorized' });
         }
@@ -135,7 +156,6 @@ router.put('/:id/resubmit', protect, uploadJobFiles.array('files', 5), async (re
         res.json({ message: 'Submission updated successfully!', application });
     } catch (err) {
         console.error('Resubmit error:', err.message);
-        console.error('Resubmit stack:', err.stack);
         res.status(500).json({ message: err.message || 'Unknown error' });
     }
 });

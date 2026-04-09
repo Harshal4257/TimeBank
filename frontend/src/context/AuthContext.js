@@ -37,6 +37,14 @@ export const AuthProvider = ({ children }) => {
     });
   };
 
+  // ✅ Call this after profile save to keep navbar name in sync
+  const updateUser = (updates) => {
+    if (updates.name !== undefined) localStorage.setItem('name', updates.name);
+    if (updates.email !== undefined) localStorage.setItem('email', updates.email);
+    if (updates.credits !== undefined) localStorage.setItem('credits', updates.credits);
+    setUser(prev => ({ ...prev, ...updates }));
+  };
+
   const updateCredits = (newCredits) => {
     localStorage.setItem('credits', newCredits);
     setUser(prev => ({ ...prev, credits: newCredits }));
@@ -53,7 +61,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, isAuthenticated: !!user, updateCredits }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, isAuthenticated: !!user, updateCredits, updateUser }}>
       {!loading && children}
     </AuthContext.Provider>
   );

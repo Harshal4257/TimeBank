@@ -1,54 +1,19 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Briefcase, MapPin, Clock, DollarSign, Bookmark, ExternalLink, Sparkles, Star, MessageSquare } from 'lucide-react';
+import { Briefcase, Clock, DollarSign, Bookmark, ExternalLink, Star, MessageSquare } from 'lucide-react';
 
 const JobCard = ({ job, onApply, onSave, isApplied = false, isSaved = false }) => {
-
-  // Calculate rating data from localStorage
-  const getRatingData = (jobId) => {
-    try {
-      const jobReviews = JSON.parse(localStorage.getItem('jobReviews') || '{}');
-      const reviews = jobReviews[jobId] || [];
-      
-      if (reviews.length === 0) {
-        return { averageRating: 0, reviewCount: 0 };
-      }
-      
-      const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
-      const averageRating = totalRating / reviews.length;
-      
-      return { averageRating, reviewCount: reviews.length };
-    } catch (error) {
-      console.error('Error calculating rating data:', error);
-      return { averageRating: 0, reviewCount: 0 };
-    }
-  };
-
-  const ratingData = getRatingData(job._id || job.jobId);
-
-  // 1. ENSURE SCORE IS READABLE: 
-  // If backend sends 0.75, we turn it into 75. If it sends 75, we keep 75.
   const rawScore = job.matchScore || 0;
   const displayScore = rawScore <= 1 ? Math.round(rawScore * 100) : Math.round(rawScore);
 
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Recent';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffTime = Math.abs(now - date);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  // Use real rating data from DB (populated by reviewController on User model)
+  const avgRating = parseFloat(job.poster?.rating || 0);
+  const reviewCount = job.poster?.numReviews || 0;
 
-    if (diffDays <= 1) return 'Today';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-    return `${Math.floor(diffDays / 30)} months ago`;
-  };
-
-  // Dynamic colors based on the calculated displayScore
   const getMatchColor = (score) => {
-    if (score >= 75) return 'bg-emerald-500'; // High Match
-    if (score >= 40) return 'bg-amber-500';   // Medium Match
-    return 'bg-slate-400';                    // Low Match
+    if (score >= 75) return 'bg-emerald-500';
+    if (score >= 40) return 'bg-amber-500';
+    return 'bg-slate-400';
   };
 
   const getMatchTextColor = (score) => {
@@ -60,14 +25,13 @@ const JobCard = ({ job, onApply, onSave, isApplied = false, isSaved = false }) =
   return (
     <div className="bg-white border border-slate-200 rounded-2xl p-6 hover:shadow-xl transition-all duration-300 hover:border-emerald-300 group flex flex-col h-full relative overflow-hidden">
 
-      {/* High Match Badge */}
       {displayScore >= 80 && (
         <div className="absolute -right-12 top-6 rotate-45 bg-emerald-600 text-white text-[10px] font-black py-1 w-44 text-center shadow-lg uppercase tracking-tighter">
           Best Fit
         </div>
       )}
 
-      {/* Job Header */}
+      {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
           <h3 className="text-xl font-bold text-slate-900 mb-1 group-hover:text-emerald-600 transition-colors line-clamp-1 pr-8">
@@ -78,18 +42,13 @@ const JobCard = ({ job, onApply, onSave, isApplied = false, isSaved = false }) =
             {job.poster?.name || 'Community Member'}
           </p>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => onSave(job._id)}
-            className={`p-2 rounded-xl transition-all ${isSaved
-              ? 'bg-amber-100 text-amber-600'
-              : 'bg-slate-50 text-slate-400 hover:bg-slate-100'
-              }`}
-            title={isSaved ? 'Remove from saved' : 'Save job'}
-          >
-            <Bookmark size={18} fill={isSaved ? 'currentColor' : 'none'} />
-          </button>
-        </div>
+        <button
+          onClick={() => onSave(job._id)}
+          className={`p-2 rounded-xl transition-all ${isSaved ? 'bg-amber-100 text-amber-600' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
+          title={isSaved ? 'Remove from saved' : 'Save job'}
+        >
+          <Bookmark size={18} fill={isSaved ? 'currentColor' : 'none'} />
+        </button>
       </div>
 
       {/* Job Details */}
@@ -104,111 +63,71 @@ const JobCard = ({ job, onApply, onSave, isApplied = false, isSaved = false }) =
         </div>
       </div>
 
-      {/* Required Skills */}
+      {/* Skills */}
       <div className="mb-5 flex-grow">
         <div className="flex flex-wrap gap-1.5">
           {job.requiredSkills?.slice(0, 4).map((skill, index) => (
-            <span
-              key={index}
-              className="px-2.5 py-0.5 bg-white text-slate-500 text-[10px] font-bold uppercase tracking-wider rounded-md border border-slate-200"
-            >
+            <span key={index} className="px-2.5 py-0.5 bg-white text-slate-500 text-[10px] font-bold uppercase tracking-wider rounded-md border border-slate-200">
               {skill}
             </span>
           ))}
           {job.requiredSkills?.length > 4 && (
-            <span className="text-[10px] text-slate-400 font-bold self-center">
-              +{job.requiredSkills.length - 4} more
-            </span>
+            <span className="text-[10px] text-slate-400 font-bold self-center">+{job.requiredSkills.length - 4} more</span>
           )}
         </div>
       </div>
 
-      {/* Reviews Section */}
+      {/* ✅ Reviews — real data from DB via poster rating */}
       <div className="mb-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex items-center">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  size={12}
-                  className={`${
-                    star <= ratingData.averageRating
-                      ? 'text-yellow-400 fill-yellow-400'
-                      : 'text-gray-300'
-                  }`}
-                />
+              {[1,2,3,4,5].map(s => (
+                <Star key={s} size={12} className={s <= Math.round(avgRating) ? 'text-yellow-400 fill-yellow-400' : 'text-slate-200'} />
               ))}
             </div>
-            <span className="text-sm font-medium text-slate-700">
-              {ratingData.averageRating.toFixed(1)}
-            </span>
-            <span className="text-xs text-slate-500">
-              ({ratingData.reviewCount} reviews)
-            </span>
+            <span className="text-sm font-medium text-slate-700">{avgRating.toFixed(1)}</span>
+            <span className="text-xs text-slate-500">({reviewCount} reviews)</span>
           </div>
-          
+          {/* ✅ Links to real JobReviews page */}
           <Link
             to={`/jobs/${job._id}/reviews`}
-            className="text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
+            className="text-xs text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1"
           >
             <MessageSquare size={12} />
             Read Reviews
           </Link>
         </div>
-        
-        {/* Review Summary */}
-        {job.reviewCount > 0 && (
-          <div className="mt-2 flex items-center gap-2">
-            <div className="flex-1 bg-slate-200 rounded-full h-1.5 overflow-hidden">
-              <div
-                className="bg-yellow-400 h-full transition-all duration-300"
-                style={{ width: `${(job.averageRating / 5) * 100}%` }}
-              />
-            </div>
-            <span className="text-xs text-slate-600">
-              {Math.round((job.averageRating / 5) * 100)}% positive
-            </span>
-          </div>
-        )}
       </div>
 
-      {/* Match Score Progress Bar */}
+      {/* Match Score */}
       {job.matchScore !== undefined && (
         <div className="mb-6 p-3 bg-slate-50 rounded-xl border border-slate-100">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[11px] font-bold text-slate-500 uppercase">Profile Match</span>
-            <span className={`text-sm font-black ${getMatchTextColor(job.matchScore)}`}>
-              {Math.round(job.matchScore)}%
-            </span>
+            <span className={`text-sm font-black ${getMatchTextColor(job.matchScore)}`}>{Math.round(job.matchScore)}%</span>
           </div>
           <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-            <div
-              className={`${getMatchColor(job.matchScore)} h-full transition-all duration-700 ease-out`}
-              style={{ width: `${Math.max(job.matchScore, 5)}%` }} // Minimum 5% width for visibility
-            ></div>
+            <div className={`${getMatchColor(job.matchScore)} h-full transition-all duration-700 ease-out`}
+              style={{ width: `${Math.max(job.matchScore, 5)}%` }} />
           </div>
         </div>
       )}
 
-      {/* Action Buttons */}
+      {/* Actions */}
       <div className="flex gap-2">
         <button
           onClick={() => onApply(job._id)}
           disabled={isApplied}
-          className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-200 ${isApplied
-            ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-            : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-100 hover:shadow-emerald-200'
-            }`}
+          className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all duration-200 ${
+            isApplied ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-100'
+          }`}
         >
           {isApplied ? 'Applied' : 'Apply Now'}
         </button>
-
-        <Link
-          to={`/jobs/${job._id}`}
+        <Link to={`/jobs/${job._id}`}
           className="p-3 border border-slate-200 rounded-xl text-slate-500 hover:bg-slate-50 transition-colors"
-          title="View full details"
-        >
+          title="View full details">
           <ExternalLink size={18} />
         </Link>
       </div>

@@ -35,6 +35,7 @@ const Privacy = lazy(() => import('./pages/Privacy'));
 const PosterPayments = lazy(() => import('./pages/PosterPayments'));
 const PosterReports = lazy(() => import('./pages/PosterReports'));
 const PosterPostJob = lazy(() => import('./pages/PosterPostJob'));
+const JobReviews = lazy(() => import('./pages/JobReviews')); // ✅ NEW
 
 // Page loader
 const PageLoader = () => (
@@ -82,13 +83,10 @@ function AppContent() {
           <Route path="/register-choice" element={<RegisterChoice />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
 
-          {/* Unified Dashboard Route */}
           <Route
             path="/dashboard"
             element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />}
           />
-
-          {/* Specialized Seeker Routes */}
           <Route
             path="/seekerdashboard"
             element={isAuthenticated ? <SeekerHomePage /> : <Navigate to="/login" />}
@@ -121,56 +119,27 @@ function AppContent() {
             path="/poster/applicants/:applicantId/:jobId"
             element={isAuthenticated ? <PosterApplicants /> : <Navigate to="/login" />}
           />
+
           {/* POSTER ROUTES */}
-          <Route
-            path="/poster/dashboard"
-            element={isAuthenticated ? <PosterDashboard /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/poster/jobs"
-            element={isAuthenticated ? <PosterDashboard /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/poster/messages"
-            element={isAuthenticated ? <Messages /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/poster/payments"
-            element={isAuthenticated ? <PosterPayments /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/poster/reports"
-            element={isAuthenticated ? <PosterReports /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/poster/post-job"
-            element={isAuthenticated ? <PosterPostJob /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/poster/job/:jobId"
-            element={isAuthenticated ? <PosterJobDetail /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/poster/job/:jobId/edit"
-            element={isAuthenticated ? <EditJob /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/poster/profile/:userId?"
-            element={isAuthenticated ? <PosterProfile /> : <Navigate to="/login" />}
-          />
+          <Route path="/poster/dashboard" element={isAuthenticated ? <PosterDashboard /> : <Navigate to="/login" />} />
+          <Route path="/poster/jobs" element={isAuthenticated ? <PosterDashboard /> : <Navigate to="/login" />} />
+          <Route path="/poster/messages" element={isAuthenticated ? <Messages /> : <Navigate to="/login" />} />
+          <Route path="/poster/payments" element={isAuthenticated ? <PosterPayments /> : <Navigate to="/login" />} />
+          <Route path="/poster/reports" element={isAuthenticated ? <PosterReports /> : <Navigate to="/login" />} />
+          <Route path="/poster/post-job" element={isAuthenticated ? <PosterPostJob /> : <Navigate to="/login" />} />
+          <Route path="/poster/job/:jobId" element={isAuthenticated ? <PosterJobDetail /> : <Navigate to="/login" />} />
+          <Route path="/poster/job/:jobId/edit" element={isAuthenticated ? <EditJob /> : <Navigate to="/login" />} />
+          <Route path="/poster/profile/:userId?" element={isAuthenticated ? <PosterProfile /> : <Navigate to="/login" />} />
 
           <Route path="/post-task" element={<PostTask />} />
           <Route path="/marketplace" element={<Marketplace />} />
 
+          {/* ✅ Job Reviews — MUST be before /jobs/:jobId so it's not swallowed */}
+          <Route path="/jobs/:jobId/reviews" element={<JobReviews />} />
+
           {/* Seeker Job Detail */}
-          <Route
-            path="/seeker/job/:jobId"
-            element={isAuthenticated ? <SeekerJobDetail /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/jobs/:jobId"
-            element={isAuthenticated ? <SeekerJobDetail /> : <Navigate to="/login" />}
-          />
+          <Route path="/seeker/job/:jobId" element={isAuthenticated ? <SeekerJobDetail /> : <Navigate to="/login" />} />
+          <Route path="/jobs/:jobId" element={isAuthenticated ? <SeekerJobDetail /> : <Navigate to="/login" />} />
 
           {/* Common Authenticated Routes */}
           <Route path="/messages" element={isAuthenticated ? <Messages /> : <Navigate to="/login" />} />

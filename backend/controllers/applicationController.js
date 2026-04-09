@@ -44,23 +44,9 @@ const applyForJob = async (req, res) => {
 
 const getJobApplications = async (req, res) => {
     try {
-        const job = await Job.findById(req.params.jobId);
         const applications = await Application.find({ jobId: req.params.jobId })
             .populate('seekerId', 'name email skills rating');
-
-        const withMatch = applications.map(app => {
-            const seekerSkills = app.seekerId?.skills || [];
-            const requiredSkills = job?.requiredSkills || [];
-            const matched = seekerSkills.filter(s =>
-                requiredSkills.map(r => r.toLowerCase()).includes(s.toLowerCase())
-            ).length;
-            const skillsMatch = requiredSkills.length > 0
-                ? Math.round((matched / requiredSkills.length) * 100)
-                : 0;
-            return { ...app.toObject(), skillsMatch };
-        });
-
-        res.json(withMatch);
+        res.json(applications);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -69,7 +55,7 @@ const getJobApplications = async (req, res) => {
 const getMyApplications = async (req, res) => {
     try {
         const applications = await Application.find({ seekerId: req.user.id })
-            .populate('jobId', 'title hourlyRate hours status');
+            .populate('jobId', 'title hourlyRate hours status poster');
         res.json(applications);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -114,7 +100,7 @@ const updateApplicationStatus = async (req, res) => {
 
         if (action === 'accept') {
             application.status = 'accepted';
-            application.acceptedAt = new Date(); // ✅ Record when poster accepted
+            application.acceptedAt = new Date(); // ✅ Timer starts here
 
             if (req.body.posterInstructions) {
                 application.posterInstructions = req.body.posterInstructions;
@@ -144,47 +130,13 @@ const updateApplicationStatus = async (req, res) => {
             user: application.seekerId,
             title: action === 'accept' ? '🎉 Application Accepted!' : '❌ Application Rejected',
             message: action === 'accept'
-                ? `Your application for "${application.jobId.title}" has been accepted! Go to your application to start the timer and view work instructions.`
+                ? `Your application for "${application.jobId.title}" has been accepted! Check your application for work instructions.`
                 : `Your application for "${application.jobId.title}" has been rejected.`,
             type: 'application_update',
             jobId: application.jobId._id
         });
 
         res.json({ message: `Application ${action}ed successfully`, application });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-// ✅ Seeker clicks "Start Work" — unlocks files and starts the timer
-const startTimer = async (req, res) => {
-    try {
-        const application = await Application.findById(req.params.id).populate('jobId');
-
-        if (!application) return res.status(404).json({ message: 'Application not found' });
-        if (application.seekerId.toString() !== req.user.id.toString()) {
-            return res.status(401).json({ message: 'Not authorized' });
-        }
-        if (application.status !== 'accepted') {
-            return res.status(400).json({ message: 'Can only start timer for accepted applications' });
-        }
-        if (application.timerStartedAt) {
-            return res.status(400).json({ message: 'Timer already started' });
-        }
-
-        application.timerStartedAt = new Date();
-        await application.save();
-
-        // Notify poster that seeker has started work
-        await Notification.create({
-            user: application.jobId.poster,
-            title: '🚀 Seeker Started Work!',
-            message: `The seeker has started working on "${application.jobId.title}". The timer is now running.`,
-            type: 'application_update',
-            jobId: application.jobId._id
-        });
-
-        res.json({ message: 'Timer started! Work has begun.', application });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -279,6 +231,5 @@ module.exports = {
     cancelApplication,
     getPosterApplications,
     updateApplicationStatus,
-    submitWork,
-    startTimer
+    submitWork
 };
