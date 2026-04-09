@@ -21,8 +21,14 @@ const applicationSchema = new mongoose.Schema({
         default: Date.now
     },
 
-    // ✅ Timer starts when poster accepts
+    // ✅ Saved when poster accepts (for record keeping)
     acceptedAt: {
+        type: Date,
+        default: null
+    },
+
+    // ✅ Timer starts when seeker clicks "Start Work"
+    timerStartedAt: {
         type: Date,
         default: null
     },

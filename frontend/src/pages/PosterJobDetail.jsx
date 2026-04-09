@@ -115,7 +115,7 @@ const PosterJobDetail = () => {
       setShowAcceptModal(false);
       setPosterInstructions('');
       setPosterFiles([]);
-      alert('Applicant accepted! Instructions and files have been sent to the seeker.');
+      alert('Applicant accepted! They will see a "Start Work" button to begin the timer.');
       fetchJobDetails();
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to accept applicant. Please try again.');
@@ -237,7 +237,10 @@ const PosterJobDetail = () => {
           applicant.status === 'submitted' ? 'bg-purple-100 text-purple-700' :
           'bg-yellow-100 text-yellow-700'
         }`}>
-          {applicant.status === 'submitted' ? '📦 Work Submitted' : applicant.status}
+          {applicant.status === 'submitted' ? '📦 Work Submitted' :
+           applicant.status === 'accepted' && !applicant.timerStartedAt ? '⏳ Awaiting Start' :
+           applicant.status === 'accepted' ? '🚀 In Progress' :
+           applicant.status}
         </span>
       </div>
 
@@ -492,7 +495,7 @@ const PosterJobDetail = () => {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-8 max-w-lg w-full shadow-2xl">
             <h3 className="text-xl font-black text-slate-900 mb-2">Accept {selectedApplicant?.name}</h3>
-            <p className="text-slate-500 text-sm mb-6">Add work instructions and share any existing files for the seeker to work on.</p>
+            <p className="text-slate-500 text-sm mb-6">Add work instructions and share any existing files. The seeker will see a "Start Work" button — the timer only begins when they click it.</p>
             <div className="mb-4">
               <label className="block text-sm font-bold text-slate-700 mb-2">Work Instructions <span className="text-red-500">*</span></label>
               <textarea value={posterInstructions} onChange={(e) => setPosterInstructions(e.target.value)}

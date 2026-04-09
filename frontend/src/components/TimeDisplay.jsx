@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { Clock, CheckCircle, AlertCircle } from 'lucide-react';
 
 // ─── Helpers ────────────────────────────────────────────────
 const formatDuration = (ms) => {
@@ -21,20 +21,23 @@ const formatDateTime = (date) => {
 
 // ─── TimeDisplay Component ───────────────────────────────────
 // Props:
-//   application  — the application object (has acceptedAt, submittedAt, status)
+//   application  — the application object (has timerStartedAt, submittedAt, status)
 //   job          — the job object (has hours)
 //   role         — 'seeker' | 'poster'
 
 const TimeDisplay = ({ application, job, role = 'poster' }) => {
   const [now, setNow] = useState(Date.now());
 
-  // Live clock — only ticks when job is in progress
+  // Live clock — only ticks when timer is running (accepted + timerStartedAt set + not submitted)
   useEffect(() => {
-    if (application?.status !== 'accepted') return;
+    const isRunning =
+      application?.status === 'accepted' && application?.timerStartedAt;
+    if (!isRunning) return;
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
-  }, [application?.status]);
+  }, [application?.status, application?.timerStartedAt]);
 
+  // ── Case 1: Not yet accepted ──
   if (!application || !application.acceptedAt) {
     return (
       <div className="bg-white border border-slate-200 rounded-2xl p-6">
@@ -42,33 +45,52 @@ const TimeDisplay = ({ application, job, role = 'poster' }) => {
           <Clock className="w-5 h-5 text-slate-400" />
           <h3 className="text-base font-bold text-slate-700">Time Tracking</h3>
         </div>
-        <p className="text-sm text-slate-400">Timer starts when the applicant is accepted.</p>
+        <p className="text-sm text-slate-400">Timer starts when the seeker begins work.</p>
       </div>
     );
   }
 
-  const acceptedAt = new Date(application.acceptedAt).getTime();
+  // ── Case 2: Accepted but seeker hasn't started yet ──
+  if (application.status === 'accepted' && !application.timerStartedAt) {
+    return (
+      <div className="bg-white border border-amber-200 rounded-2xl p-6 shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <Clock className="w-5 h-5 text-amber-500" />
+          <h3 className="text-base font-bold text-slate-800">Time Tracking</h3>
+          <span className="ml-auto px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700">
+            ⏳ Not Started
+          </span>
+        </div>
+        <p className="text-sm text-slate-500">
+          {role === 'poster'
+            ? 'Waiting for the seeker to start work. The timer will begin once they click "Start Work".'
+            : 'Click "Start Work" below to unlock the files and begin the timer.'}
+        </p>
+        <div className="mt-3 p-3 bg-amber-50 border border-amber-100 rounded-xl text-sm text-amber-700">
+          ⏱ Time allowed: <span className="font-bold">{job?.hours || 0} hour{job?.hours !== 1 ? 's' : ''}</span>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Case 3: Timer is running or job is done ──
+  const timerStartedAt = new Date(application.timerStartedAt).getTime();
   const submittedAt = application.submittedAt
     ? new Date(application.submittedAt).getTime()
     : null;
-  const deadlineMs = acceptedAt + (job?.hours || 0) * 3600 * 1000;
   const allowedMs = (job?.hours || 0) * 3600 * 1000;
+  const deadlineMs = timerStartedAt + allowedMs;
 
-  // How long did/has the seeker taken
   const elapsedMs = submittedAt
-    ? submittedAt - acceptedAt          // job done — fixed elapsed
-    : now - acceptedAt;                 // still running — live
+    ? submittedAt - timerStartedAt   // fixed once submitted
+    : now - timerStartedAt;          // live while running
 
-  // Time remaining (only relevant while accepted)
   const remainingMs = deadlineMs - (submittedAt || now);
   const isOverdue = remainingMs < 0;
   const isRunning = application.status === 'accepted';
   const isSubmitted = application.status === 'submitted' || application.status === 'completed';
 
-  // Was it submitted on time?
   const submittedOnTime = submittedAt ? submittedAt <= deadlineMs : null;
-
-  // Progress bar percent (cap at 100)
   const progressPct = Math.min((elapsedMs / allowedMs) * 100, 100);
 
   // ── Status badge ──
@@ -164,8 +186,8 @@ const TimeDisplay = ({ application, job, role = 'poster' }) => {
       {/* Timestamps */}
       <div className="border-t border-slate-100 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-500">
         <div>
-          <p className="font-semibold text-slate-600 mb-0.5">⏱ Started</p>
-          <p>{formatDateTime(application.acceptedAt)}</p>
+          <p className="font-semibold text-slate-600 mb-0.5">⏱ Work Started</p>
+          <p>{formatDateTime(application.timerStartedAt)}</p>
         </div>
         <div>
           <p className="font-semibold text-slate-600 mb-0.5">🏁 Deadline</p>
@@ -179,7 +201,7 @@ const TimeDisplay = ({ application, job, role = 'poster' }) => {
         </div>
       </div>
 
-      {/* Seeker-only: urgency message while running */}
+      {/* Seeker urgency message while running */}
       {role === 'seeker' && isRunning && (
         <div className={`mt-4 p-3 rounded-xl text-sm font-medium ${
           isOverdue

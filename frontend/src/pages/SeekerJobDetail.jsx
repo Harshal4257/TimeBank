@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Briefcase, Clock, Mail, User, ArrowLeft, Upload, Download, IndianRupee, FileText, Edit } from 'lucide-react';
+import { Briefcase, Clock, Mail, User, ArrowLeft, Upload, Download, IndianRupee, FileText, Edit, PlayCircle, Lock } from 'lucide-react';
 import API from '../services/api';
 import { AuthContext } from '../context/AuthContext';
 import TimeDisplay from '../components/TimeDisplay';
@@ -23,6 +23,8 @@ const SeekerJobDetail = () => {
   const [editedNotes, setEditedNotes] = useState('');
   const [editedSubmissionFiles, setEditedSubmissionFiles] = useState([]);
   const [editSubmissionLoading, setEditSubmissionLoading] = useState(false);
+
+  const [startingTimer, setStartingTimer] = useState(false);
 
   const fetchData = async () => {
     try {
@@ -74,6 +76,24 @@ const SeekerJobDetail = () => {
       alert('Application cancelled.');
     } catch (err) {
       alert('Failed to cancel application.');
+    }
+  };
+
+  // ✅ Seeker clicks "Start Work" — starts timer and unlocks files
+  const handleStartTimer = async () => {
+    if (!application) return;
+    const confirmed = window.confirm(
+      `⏱ Starting the timer will begin your ${job?.hours}-hour countdown and cannot be undone.\n\nAre you ready to start work?`
+    );
+    if (!confirmed) return;
+    try {
+      setStartingTimer(true);
+      const res = await API.put(`/applications/${application._id}/start-timer`);
+      setApplication(res.data.application);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to start timer. Please try again.');
+    } finally {
+      setStartingTimer(false);
     }
   };
 
@@ -171,6 +191,8 @@ const SeekerJobDetail = () => {
   const isSubmitted = appStatus === 'submitted';
   const isAccepted = appStatus === 'accepted';
   const isPending = appStatus === 'pending';
+  const timerStarted = !!application?.timerStartedAt;
+
   const postedDate = job.createdAt
     ? new Date(job.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
     : 'Recently';
@@ -182,26 +204,171 @@ const SeekerJobDetail = () => {
           <ArrowLeft size={18} /> Back to jobs
         </button>
 
-        {/* ✅ Time Tracking — shown to seeker when accepted/submitted/completed */}
+        {/* ── Time Tracking — shown when timer is running or job is done ── */}
         {(isAccepted || isSubmitted || isCompleted) && application && (
           <div className="mb-6">
             <TimeDisplay application={application} job={job} role="seeker" />
           </div>
         )}
 
-        {(isAccepted || isSubmitted || isCompleted) && (
+        {/* ── Accepted state ── */}
+        {isAccepted && (
+          <div className="mb-6 rounded-2xl border overflow-hidden">
+
+            {/* ── LOCKED: Timer not started yet ── */}
+            {!timerStarted && (
+              <div className="bg-amber-50 border-amber-200 border p-6 rounded-2xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                    <Lock size={20} className="text-amber-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-black text-amber-900">🎉 You Got the Job!</h2>
+                    <p className="text-sm text-amber-700">Start work to unlock files and begin the timer.</p>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-white border border-amber-200 rounded-xl mb-5">
+                  <p className="text-sm text-slate-600 leading-relaxed">
+                    The poster has accepted your application and provided work instructions.
+                    Once you click <span className="font-bold text-amber-700">Start Work</span>, the files
+                    and instructions will be unlocked and your <span className="font-bold">{job.hours}-hour</span> countdown will begin.
+                  </p>
+                  <p className="text-xs text-amber-600 font-medium mt-2">
+                    ⚠️ Only click Start when you are ready — the timer cannot be paused or reset.
+                  </p>
+                </div>
+
+                {/* Locked preview — blurred file list */}
+                <div className="mb-5 p-4 bg-white border border-amber-100 rounded-xl opacity-60 select-none pointer-events-none">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Lock size={14} className="text-slate-400" />
+                    <p className="text-sm font-bold text-slate-400">Files & Instructions (locked)</p>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-slate-200 rounded w-3/4 blur-sm" />
+                    <div className="h-4 bg-slate-200 rounded w-1/2 blur-sm" />
+                    <div className="h-8 bg-slate-100 border border-slate-200 rounded-lg blur-sm" />
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleStartTimer}
+                  disabled={startingTimer}
+                  className="flex items-center gap-3 px-8 py-4 bg-emerald-600 text-white rounded-xl font-black text-lg hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-lg shadow-emerald-200 w-full justify-center"
+                >
+                  <PlayCircle size={24} />
+                  {startingTimer ? 'Starting...' : `Start Work — Begin ${job.hours}h Timer`}
+                </button>
+              </div>
+            )}
+
+            {/* ── UNLOCKED: Timer started, show instructions and files ── */}
+            {timerStarted && (
+              <div className="bg-blue-50 border border-blue-200 p-6 rounded-2xl">
+                <h2 className="text-lg font-black text-blue-800 mb-4">🚀 Work In Progress</h2>
+
+                {application?.posterInstructions && (
+                  <div className="mb-4">
+                    <p className="text-sm font-bold text-slate-700 mb-2">📋 Work Instructions from Poster:</p>
+                    <div className="p-3 bg-white rounded-xl border border-slate-200">
+                      <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">
+                        {application.posterInstructions}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {application?.posterFiles?.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-sm font-bold text-slate-700 mb-2">📁 Project Files to Work On:</p>
+                    <div className="space-y-2">
+                      {application.posterFiles.map((file, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleDownload(file.url, file.originalName)}
+                          className="w-full flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50 transition-all text-left"
+                        >
+                          <Download size={18} className="text-emerald-600 shrink-0" />
+                          <span className="text-slate-700 text-sm font-medium truncate">{file.originalName || `File ${i + 1}`}</span>
+                          <span className="ml-auto text-xs text-emerald-600 font-bold shrink-0">Download</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!showSubmitForm && (
+                  <button
+                    onClick={() => setShowSubmitForm(true)}
+                    className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
+                  >
+                    <Upload size={18} /> Submit Completed Work
+                  </button>
+                )}
+
+                {showSubmitForm && (
+                  <div className="mt-4 p-4 bg-white rounded-xl border border-slate-200">
+                    <h3 className="font-bold text-slate-900 mb-4">Submit Your Work</h3>
+                    <div className="mb-4">
+                      <label className="block text-sm font-bold text-slate-700 mb-2">
+                        Submission Notes <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        value={submissionNotes}
+                        onChange={(e) => setSubmissionNotes(e.target.value)}
+                        placeholder="Describe what you've done, any important notes, links to your work..."
+                        rows={4}
+                        className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none text-sm"
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-bold text-slate-700 mb-2">
+                        Upload Completed Files <span className="text-slate-400 font-normal">(optional)</span>
+                      </label>
+                      <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center">
+                        <Upload size={24} className="text-slate-400 mx-auto mb-2" />
+                        <label className="cursor-pointer">
+                          <span className="text-emerald-600 font-medium text-sm">Click to upload completed files</span>
+                          <input
+                            type="file"
+                            multiple
+                            className="hidden"
+                            accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.zip,.rar,.txt,.xlsx,.pptx"
+                            onChange={(e) => setSubmissionFiles(Array.from(e.target.files))}
+                          />
+                        </label>
+                        {submissionFiles.length > 0 && (
+                          <div className="mt-2">
+                            {submissionFiles.map((f, i) => (
+                              <p key={i} className="text-xs text-slate-600">📄 {f.name}</p>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <button onClick={() => setShowSubmitForm(false)} className="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 text-sm font-medium">
+                        Cancel
+                      </button>
+                      <button onClick={handleSubmitWork} disabled={submitting} className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50 text-sm">
+                        {submitting ? 'Submitting...' : '🚀 Submit Work'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Submitted / Completed state ── */}
+        {(isSubmitted || isCompleted) && (
           <div className={`mb-6 rounded-2xl p-6 border ${
-            isCompleted ? 'bg-emerald-50 border-emerald-200' :
-            isSubmitted ? 'bg-purple-50 border-purple-200' :
-            'bg-blue-50 border-blue-200'
+            isCompleted ? 'bg-emerald-50 border-emerald-200' : 'bg-purple-50 border-purple-200'
           }`}>
-            <h2 className={`text-lg font-black mb-3 ${
-              isCompleted ? 'text-emerald-800' :
-              isSubmitted ? 'text-purple-800' : 'text-blue-800'
-            }`}>
-              {isCompleted ? '✅ Job Completed & Paid!' :
-               isSubmitted ? '📦 Work Submitted — Awaiting Payment' :
-               '🎉 You Got the Job!'}
+            <h2 className={`text-lg font-black mb-3 ${isCompleted ? 'text-emerald-800' : 'text-purple-800'}`}>
+              {isCompleted ? '✅ Job Completed & Paid!' : '📦 Work Submitted — Awaiting Payment'}
             </h2>
 
             {isCompleted && application?.paymentAmount > 0 && (
@@ -214,6 +381,7 @@ const SeekerJobDetail = () => {
               </div>
             )}
 
+            {/* Show instructions even after submission */}
             {application?.posterInstructions && (
               <div className="mb-4">
                 <p className="text-sm font-bold text-slate-700 mb-2">📋 Work Instructions from Poster:</p>
@@ -225,123 +393,44 @@ const SeekerJobDetail = () => {
               </div>
             )}
 
-            {application?.posterFiles?.length > 0 && (
-              <div className="mb-4">
-                <p className="text-sm font-bold text-slate-700 mb-2">📁 Project Files to Work On:</p>
+            {/* Show your submission */}
+            <div className="mb-4 p-4 bg-white rounded-xl border border-purple-200">
+              <div className="flex justify-between items-center mb-3">
+                <p className="text-sm font-bold text-purple-800">📦 Your Submission:</p>
+                {isSubmitted && (
+                  <button
+                    onClick={() => {
+                      setEditedNotes(application?.submissionNotes || '');
+                      setEditedSubmissionFiles([]);
+                      setShowEditSubmissionModal(true);
+                    }}
+                    className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 text-xs font-medium"
+                  >
+                    <Edit size={12} /> Edit Submission
+                  </button>
+                )}
+              </div>
+              {application?.submissionNotes && (
+                <div className="mb-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
+                  <p className="text-slate-600 text-sm">{application.submissionNotes}</p>
+                </div>
+              )}
+              {application?.submissionFiles?.length > 0 && (
                 <div className="space-y-2">
-                  {application.posterFiles.map((file, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handleDownload(file.url, file.originalName)}
-                      className="w-full flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl hover:border-emerald-300 hover:bg-emerald-50 transition-all text-left"
-                    >
-                      <Download size={18} className="text-emerald-600 shrink-0" />
-                      <span className="text-slate-700 text-sm font-medium truncate">{file.originalName || `File ${i + 1}`}</span>
-                      <span className="ml-auto text-xs text-emerald-600 font-bold shrink-0">Download</span>
-                    </button>
+                  <p className="text-xs font-bold text-slate-600 mb-1">📎 Submitted Files:</p>
+                  {application.submissionFiles.map((file, i) => (
+                    <div key={i} className="flex items-center gap-3 p-2 bg-purple-50 border border-purple-100 rounded-lg">
+                      <FileText size={16} className="text-purple-600 shrink-0" />
+                      <span className="text-slate-700 text-sm truncate">{file.originalName || `File ${i + 1}`}</span>
+                    </div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {(isSubmitted || isCompleted) && (
-              <div className="mb-4 p-4 bg-white rounded-xl border border-purple-200">
-                <div className="flex justify-between items-center mb-3">
-                  <p className="text-sm font-bold text-purple-800">📦 Your Submission:</p>
-                  {isSubmitted && (
-                    <button
-                      onClick={() => {
-                        setEditedNotes(application?.submissionNotes || '');
-                        setEditedSubmissionFiles([]);
-                        setShowEditSubmissionModal(true);
-                      }}
-                      className="flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 text-xs font-medium"
-                    >
-                      <Edit size={12} /> Edit Submission
-                    </button>
-                  )}
-                </div>
-                {application?.submissionNotes && (
-                  <div className="mb-3 p-3 bg-purple-50 rounded-lg border border-purple-100">
-                    <p className="text-slate-600 text-sm">{application.submissionNotes}</p>
-                  </div>
-                )}
-                {application?.submissionFiles?.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs font-bold text-slate-600 mb-1">📎 Submitted Files:</p>
-                    {application.submissionFiles.map((file, i) => (
-                      <div key={i} className="flex items-center gap-3 p-2 bg-purple-50 border border-purple-100 rounded-lg">
-                        <FileText size={16} className="text-purple-600 shrink-0" />
-                        <span className="text-slate-700 text-sm truncate">{file.originalName || `File ${i + 1}`}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {isAccepted && !showSubmitForm && (
-              <button
-                onClick={() => setShowSubmitForm(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
-              >
-                <Upload size={18} /> Submit Completed Work
-              </button>
-            )}
-
-            {isAccepted && showSubmitForm && (
-              <div className="mt-4 p-4 bg-white rounded-xl border border-slate-200">
-                <h3 className="font-bold text-slate-900 mb-4">Submit Your Work</h3>
-                <div className="mb-4">
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
-                    Submission Notes <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    value={submissionNotes}
-                    onChange={(e) => setSubmissionNotes(e.target.value)}
-                    placeholder="Describe what you've done, any important notes, links to your work..."
-                    rows={4}
-                    className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none text-sm"
-                  />
-                </div>
-                <div className="mb-4">
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
-                    Upload Completed Files <span className="text-slate-400 font-normal">(optional)</span>
-                  </label>
-                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center">
-                    <Upload size={24} className="text-slate-400 mx-auto mb-2" />
-                    <label className="cursor-pointer">
-                      <span className="text-emerald-600 font-medium text-sm">Click to upload completed files</span>
-                      <input
-                        type="file"
-                        multiple
-                        className="hidden"
-                        accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.zip,.rar,.txt,.xlsx,.pptx"
-                        onChange={(e) => setSubmissionFiles(Array.from(e.target.files))}
-                      />
-                    </label>
-                    {submissionFiles.length > 0 && (
-                      <div className="mt-2">
-                        {submissionFiles.map((f, i) => (
-                          <p key={i} className="text-xs text-slate-600">📄 {f.name}</p>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <button onClick={() => setShowSubmitForm(false)} className="px-4 py-2 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 text-sm font-medium">
-                    Cancel
-                  </button>
-                  <button onClick={handleSubmitWork} disabled={submitting} className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50 text-sm">
-                    {submitting ? 'Submitting...' : '🚀 Submit Work'}
-                  </button>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
 
+        {/* ── Job detail card ── */}
         <div className="bg-white rounded-3xl shadow-xl border border-white p-8 space-y-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
@@ -419,7 +508,7 @@ const SeekerJobDetail = () => {
               }`}>
                 {isCompleted ? '✅ Completed & Paid' :
                  isSubmitted ? '📦 Work Submitted' :
-                 isAccepted ? '🎉 Accepted' :
+                 isAccepted ? (timerStarted ? '🚀 In Progress' : '🎉 Accepted — Start When Ready') :
                  isPending ? '⏳ Pending Review' : '❌ Rejected'}
               </span>
             )}
