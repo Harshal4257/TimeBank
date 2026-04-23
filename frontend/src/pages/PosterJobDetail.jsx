@@ -271,11 +271,11 @@ const PosterJobDetail = () => {
           applicant.status === 'rejected' ? 'bg-red-100 text-red-700' :
           applicant.status === 'completed' ? 'bg-blue-100 text-blue-700' :
           applicant.status === 'submitted' ? 'bg-purple-100 text-purple-700' :
-          applicant.status === 'revision_requested' ? 'bg-orange-100 text-orange-700' :
+          applicant.status === 'revision_requested' ? 'bg-blue-100 text-blue-700' :
           'bg-yellow-100 text-yellow-700'
         }`}>
           {applicant.status === 'submitted' ? '📦 Work Submitted' :
-           applicant.status === 'revision_requested' ? '🔄 Revision Requested' :
+           applicant.status === 'revision_requested' ? '🚀 In Progress' :
            applicant.status === 'accepted' && !applicant.timerStartedAt ? '⏳ Awaiting Start' :
            applicant.status === 'accepted' ? '🚀 In Progress' :
            applicant.status}
@@ -506,13 +506,20 @@ const PosterJobDetail = () => {
                     className={`px-4 py-2 rounded-lg font-medium capitalize text-sm transition-colors ${
                       activeTab === tab ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}>
-                    {tab === 'submitted' ? '📦 Submitted' : tab} ({applicants.filter(a => a.status === tab).length})
+                    {tab === 'submitted' ? '📦 Submitted' : tab === 'accepted' ? '🚀 In Progress' : tab}
+                    {' '}({applicants.filter(a => tab === 'accepted'
+                      ? (a.status === 'accepted' || a.status === 'revision_requested')
+                      : a.status === tab).length})
                   </button>
                 ))}
               </div>
               <div className="space-y-4">
-                {applicants.filter(a => a.status === activeTab).map(applicant => <ApplicantCard key={applicant._id} applicant={applicant} />)}
-                {applicants.filter(a => a.status === activeTab).length === 0 && (
+                {applicants.filter(a => activeTab === 'accepted'
+                  ? (a.status === 'accepted' || a.status === 'revision_requested')
+                  : a.status === activeTab).map(applicant => <ApplicantCard key={applicant._id} applicant={applicant} />)}
+                {applicants.filter(a => activeTab === 'accepted'
+                  ? (a.status === 'accepted' || a.status === 'revision_requested')
+                  : a.status === activeTab).length === 0 && (
                   <div className="text-center py-8">
                     <Users size={48} className="text-slate-300 mx-auto mb-4" />
                     <p className="text-slate-500">No {activeTab} applicants</p>

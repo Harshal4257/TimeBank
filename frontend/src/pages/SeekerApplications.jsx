@@ -179,21 +179,34 @@ const SeekerApplications = () => {
     });
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (app) => {
+    const { status, timerStartedAt } = app;
     switch (status) {
-      case 'accepted': return <span className="flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium"><CheckCircle size={14} /> Accepted</span>;
+      case 'accepted':
+        return timerStartedAt
+          ? <span className="flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"><CheckCircle size={14} /> 🚀 In Progress</span>
+          : <span className="flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium"><CheckCircle size={14} /> ⏳ Awaiting Start</span>;
+      case 'revision_requested':
+        return <span className="flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"><Clock4 size={14} /> 🚀 In Progress</span>;
       case 'rejected': return <span className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium"><XCircle size={14} /> Rejected</span>;
       case 'completed': return <span className="flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"><CheckCircle size={14} /> Completed & Paid</span>;
       case 'submitted': return <span className="flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium"><Clock4 size={14} /> Submitted</span>;
-      case 'revision_requested': return <span className="flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium"><Clock4 size={14} /> 🔄 Revision Needed</span>;
       default: return <span className="flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium"><Clock4 size={14} /> Pending</span>;
     }
   };
 
-  const filters = ['all', 'pending', 'accepted', 'submitted', 'completed', 'rejected'];
-  const filteredApplications = activeFilter === 'all' ? applications : applications.filter(app => app.status === activeFilter);
-  const completedCount = applications.filter(a => a.status === 'completed').length;
-  const totalEarned = applications.filter(a => a.status === 'completed').reduce((sum, a) => sum + (a.jobId ? (a.jobId.hourlyRate * a.jobId.hours || 0) : 0), 0);
+  const filters = ['all', 'pending', 'in_progress', 'submitted', 'completed', 'rejected'];
+  // Always exclude applications whose job has been deleted
+  const validApplications = applications.filter(app => app.jobId);
+  const inProgressApps = validApplications.filter(a => a.status === 'accepted' || a.status === 'revision_requested');
+  const filteredApplications = activeFilter === 'all'
+    ? validApplications
+    : activeFilter === 'in_progress'
+      ? inProgressApps
+      : validApplications.filter(app => app.status === activeFilter);
+  const completedCount = validApplications.filter(a => a.status === 'completed').length;
+  const totalEarned = validApplications.filter(a => a.status === 'completed').reduce((sum, a) => sum + (a.jobId ? (a.jobId.hourlyRate * a.jobId.hours || 0) : 0), 0);
+
 
   return (
     <div className="min-h-screen bg-[#E6EEF2]">
@@ -211,7 +224,7 @@ const SeekerApplications = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
               <p className="text-slate-500 text-sm font-medium">Total Applications</p>
-              <p className="text-3xl font-black text-slate-900 mt-1">{applications.length}</p>
+              <p className="text-3xl font-black text-slate-900 mt-1">{validApplications.length}</p>
             </div>
             <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
               <p className="text-slate-500 text-sm font-medium">Completed Jobs</p>
@@ -232,7 +245,11 @@ const SeekerApplications = () => {
                 className={`px-4 py-2 rounded-xl text-sm font-bold capitalize transition-all ${
                   activeFilter === filter ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100' : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
                 }`}>
-                {filter === 'all' ? `All (${applications.length})` : `${filter.charAt(0).toUpperCase() + filter.slice(1)} (${applications.filter(a => a.status === filter).length})`}
+                {filter === 'all'
+                  ? `All (${validApplications.length})`
+                  : filter === 'in_progress'
+                    ? `🚀 In Progress (${inProgressApps.length})`
+                    : `${filter.charAt(0).toUpperCase() + filter.slice(1)} (${validApplications.filter(a => a.status === filter).length})`}
               </button>
             ))}
           </div>
@@ -268,7 +285,7 @@ const SeekerApplications = () => {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2 flex-wrap">
                         <h3 className="text-lg font-bold text-slate-900">{app.jobId ? app.jobId.title : 'Deleted Job'}</h3>
-                        {getStatusBadge(app.status)}
+                        {getStatusBadge(app)}
                       </div>
                       {app.jobId && (
                         <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">

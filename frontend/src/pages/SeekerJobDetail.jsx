@@ -549,14 +549,14 @@ const SeekerJobDetail = () => {
               <span className={`px-3 py-1 rounded-full text-sm font-bold ${
                 isCompleted ? 'bg-emerald-100 text-emerald-700' :
                 isSubmitted ? 'bg-purple-100 text-purple-700' :
-                isRevisionRequested ? 'bg-orange-100 text-orange-700' :
+                isRevisionRequested ? 'bg-blue-100 text-blue-700' :
                 isAccepted ? 'bg-blue-100 text-blue-700' :
                 isPending ? 'bg-yellow-100 text-yellow-700' :
                 'bg-red-100 text-red-700'
               }`}>
                 {isCompleted ? '✅ Completed & Paid' :
                  isSubmitted ? '📦 Work Submitted' :
-                 isRevisionRequested ? '🔄 Revision Requested' :
+                 isRevisionRequested ? '🚀 In Progress' :
                  isAccepted ? (timerStarted ? '🚀 In Progress' : '🎉 Accepted — Start When Ready') :
                  isPending ? '⏳ Pending Review' : '❌ Rejected'}
               </span>

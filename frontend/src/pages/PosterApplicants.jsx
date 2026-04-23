@@ -35,21 +35,30 @@ const PosterApplicants = () => {
             app.seekerId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             app.jobId?.title?.toLowerCase().includes(searchTerm.toLowerCase());
 
-        const matchesStatus = statusFilter === 'all' || app.status === statusFilter;
+        const matchesStatus = statusFilter === 'all'
+            ? app.status !== 'rejected'          // hide rejected in default "All" view
+            : app.status === statusFilter;
 
         return matchesSearch && matchesStatus;
     });
 
-    const getStatusBadge = (status) => {
+    const getStatusBadge = (app) => {
+        const { status, timerStartedAt } = app;
         switch (status) {
             case 'accepted':
-                return <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold uppercase">Accepted</span>;
+                return timerStartedAt
+                    ? <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase">🚀 In Progress</span>
+                    : <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold uppercase">⏳ Awaiting Start</span>;
+            case 'revision_requested':
+                return <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase">🚀 In Progress</span>;
+            case 'submitted':
+                return <span className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold uppercase">📦 Submitted</span>;
             case 'rejected':
                 return <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold uppercase">Rejected</span>;
             case 'completed':
                 return <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase">Completed</span>;
             default:
-                return <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-bold uppercase">Pending</span>;
+                return <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-xs font-bold uppercase">⏳ Pending</span>;
         }
     };
 
@@ -151,7 +160,7 @@ const PosterApplicants = () => {
                                             </p>
                                         </td>
                                         <td className="px-8 py-6 text-center">
-                                            {getStatusBadge(app.status)}
+                                            {getStatusBadge(app)}
                                         </td>
                                         <td className="px-8 py-6 text-right">
                                             <Link
