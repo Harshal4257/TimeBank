@@ -170,7 +170,9 @@ const SeekerApplications = () => {
 
   // Check if seeker already reviewed a job
   const getExistingReview = (jobId) => {
-    const id = typeof jobId === 'object' ? jobId._id : jobId;
+    if (!jobId) return undefined;
+    const id = typeof jobId === 'object' ? jobId?._id : jobId;
+    if (!id) return undefined;
     return reviews.find(r => {
       const rJobId = r.jobId?._id || r.jobId;
       return rJobId?.toString() === id?.toString();
@@ -190,7 +192,7 @@ const SeekerApplications = () => {
   const filters = ['all', 'pending', 'accepted', 'submitted', 'completed', 'rejected'];
   const filteredApplications = activeFilter === 'all' ? applications : applications.filter(app => app.status === activeFilter);
   const completedCount = applications.filter(a => a.status === 'completed').length;
-  const totalEarned = applications.filter(a => a.status === 'completed').reduce((sum, a) => sum + (a.jobId?.hourlyRate * a.jobId?.hours || 0), 0);
+  const totalEarned = applications.filter(a => a.status === 'completed').reduce((sum, a) => sum + (a.jobId ? (a.jobId.hourlyRate * a.jobId.hours || 0) : 0), 0);
 
   return (
     <div className="min-h-screen bg-[#E6EEF2]">
@@ -307,7 +309,7 @@ const SeekerApplications = () => {
                         </button>
                       )}
                       <Link
-                        to={app.jobId ? `/jobs/${app.jobId._id}` : '#'}
+                        to={app.jobId?._id ? `/jobs/${app.jobId._id}` : '#'}
                         className="px-4 py-2 border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-100 transition-colors font-medium flex items-center gap-2"
                       >
                         View Details <ArrowRight size={16} />

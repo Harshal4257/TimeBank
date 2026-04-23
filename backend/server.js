@@ -22,7 +22,8 @@ const app = express();
 app.use(cors({
   origin: [
     "http://localhost:3000",
-    "https://timebank-frontend-nu.vercel.app"  // ← reads from env variable
+    "http://localhost:3001",  // ← fallback port when 3000 is occupied
+    "https://timebank-frontend-nu.vercel.app"
   ],
   credentials: true
 }));

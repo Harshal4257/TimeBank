@@ -208,6 +208,52 @@ const completeJob = async (req, res) => {
     }
 };
 
+// Request revision from seeker (poster action on a submitted application)
+const requestRevision = async (req, res) => {
+    try {
+        const application = await Application.findById(req.params.id).populate('jobId');
+
+        if (!application) return res.status(404).json({ message: 'Application not found' });
+        if (application.jobId.poster.toString() !== req.user.id.toString()) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+        if (application.status !== 'submitted') {
+            return res.status(400).json({ message: 'Can only request revision for submitted applications' });
+        }
+
+        const { revisionFeedback, revisionDeadline } = req.body;
+        if (!revisionFeedback?.trim()) {
+            return res.status(400).json({ message: 'Please provide feedback for the seeker.' });
+        }
+
+        application.status = 'revision_requested';
+        application.revisionFeedback = revisionFeedback.trim();
+        application.revisionDeadline = revisionDeadline ? new Date(revisionDeadline) : null;
+        application.revisionCount = (application.revisionCount || 0) + 1;
+        await application.save();
+
+        // Notify seeker
+        await Notification.create({
+            user: application.seekerId,
+            title: '🔄 Revision Requested',
+            message: `Poster has requested a revision for "${application.jobId.title}". Check their feedback and resubmit.`,
+            type: 'revision_requested',
+            jobId: application.jobId._id
+        });
+
+        await Message.create({
+            sender: req.user.id,
+            receiver: application.seekerId,
+            content: `Revision requested for "${application.jobId.title}": ${revisionFeedback.trim()}`,
+            isSystemMessage: true
+        });
+
+        res.json({ message: 'Revision requested successfully', application });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 const cancelApplication = async (req, res) => {
     try {
         const application = await Application.findById(req.params.id);
@@ -231,5 +277,6 @@ module.exports = {
     cancelApplication,
     getPosterApplications,
     updateApplicationStatus,
-    submitWork
+    submitWork,
+    requestRevision
 };

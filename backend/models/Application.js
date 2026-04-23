@@ -13,7 +13,7 @@ const applicationSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'accepted', 'rejected', 'submitted', 'completed'],
+        enum: ['pending', 'accepted', 'rejected', 'submitted', 'completed', 'revision_requested'],
         default: 'pending'
     },
     appliedAt: {
@@ -61,6 +61,20 @@ const applicationSchema = new mongoose.Schema({
     submittedAt: {
         type: Date,
         default: null
+    },
+
+    // Revision request by poster
+    revisionFeedback: {
+        type: String,
+        default: ''
+    },
+    revisionDeadline: {
+        type: Date,
+        default: null
+    },
+    revisionCount: {
+        type: Number,
+        default: 0
     },
 
     // Payment info
