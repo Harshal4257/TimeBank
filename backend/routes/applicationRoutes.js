@@ -164,6 +164,7 @@ router.put('/:id/resubmit', protect, uploadJobFiles.array('files', 5), async (re
     } catch (err) {
         console.error('Resubmit error:', err.message);
         res.status(500).json({ message: err.message || 'Unknown error' });
+        
     }
 });
 
