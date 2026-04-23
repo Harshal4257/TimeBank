@@ -16,7 +16,7 @@ const notificationSchema = new mongoose.Schema({
     },
     type: {
     type: String,
-    enum: ['job_match', 'application_update', 'new_application', 'work_submitted', 'payment_received'],
+    enum: ['job_match', 'application_update', 'new_application', 'work_submitted', 'payment_received', 'revision_requested'],
     required: true
     },
     jobId: {

@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { Settings as SettingsIcon, Bell, Shield, Eye, Globe, Moon, CreditCard, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Settings as SettingsIcon, Bell, CreditCard } from 'lucide-react';
 
 const Settings = () => {
+    const navigate = useNavigate();
     const [notifications, setNotifications] = useState(true);
-    const [darkMode, setDarkMode] = useState(false);
-    const [isPublic, setIsPublic] = useState(true);
 
     const SettingSection = ({ icon: Icon, title, description, children, divider = true }) => (
         <div className={`p-8 ${divider ? 'border-b border-slate-50' : ''}`}>
@@ -55,38 +55,15 @@ const Settings = () => {
                     </SettingSection>
 
                     <SettingSection
-                        icon={Shield}
-                        title="Privacy Mode"
-                        description="Control who can see your profile and activity"
-                    >
-                        <Toggle enabled={isPublic} setEnabled={setIsPublic} />
-                    </SettingSection>
-
-                    <SettingSection
-                        icon={Moon}
-                        title="Dark Mode"
-                        description="Toggle between light and dark theme (Preview)"
-                    >
-                        <Toggle enabled={darkMode} setEnabled={setDarkMode} />
-                    </SettingSection>
-
-                    <SettingSection
-                        icon={Globe}
-                        title="Language"
-                        description="Choose your preferred language for the interface"
-                    >
-                        <button className="flex items-center gap-2 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-700 hover:border-emerald-500 transition-all text-sm">
-                            English (US) <ChevronRight size={16} />
-                        </button>
-                    </SettingSection>
-
-                    <SettingSection
                         icon={CreditCard}
                         title="Payment Details"
                         description="Manage your credit card and billing information"
                         divider={false}
                     >
-                        <button className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-black transition-all shadow-lg text-sm">
+                        <button
+                            onClick={() => navigate('/poster/payments')}
+                            className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-black transition-all shadow-lg text-sm"
+                        >
                             Manage Billing
                         </button>
                     </SettingSection>

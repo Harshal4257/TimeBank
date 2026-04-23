@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Briefcase, Users, DollarSign, Plus, Eye, CheckCircle, Star, MessageSquare
+  Briefcase, Users, Plus, Eye, CheckCircle, Star, MessageSquare
 } from 'lucide-react';
 import API from '../services/api';
 
@@ -29,8 +29,9 @@ const PosterDashboard = () => {
         totalJobs: jobsRes.data.length,
         activeJobs: jobsRes.data.filter(j => j.status === 'active').length,
         totalApplicants: appsRes.data.length,
-        totalEarnings: 0
       });
+
+
 
       // Fetch real ratings for all jobs in parallel
       const ratingsMap = {};
@@ -85,13 +86,12 @@ const PosterDashboard = () => {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           <StatCard icon={Briefcase} title="Total Jobs" value={dashboardStats.totalJobs} color="bg-blue-600" />
           <StatCard icon={CheckCircle} title="Active" value={dashboardStats.activeJobs} color="bg-emerald-600" />
           <Link to="/poster/applicants" className="block transform hover:scale-[1.02] transition-transform">
             <StatCard icon={Users} title="Applicants" value={dashboardStats.totalApplicants} color="bg-purple-600" />
           </Link>
-          <StatCard icon={DollarSign} title="Earnings" value={`₹${dashboardStats.totalEarnings}`} color="bg-orange-600" />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

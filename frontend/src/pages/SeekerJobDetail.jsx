@@ -191,6 +191,7 @@ const SeekerJobDetail = () => {
   const isSubmitted = appStatus === 'submitted';
   const isAccepted = appStatus === 'accepted';
   const isPending = appStatus === 'pending';
+  const isRevisionRequested = appStatus === 'revision_requested';
   const timerStarted = !!application?.timerStartedAt;
 
   const postedDate = job.createdAt
@@ -205,9 +206,55 @@ const SeekerJobDetail = () => {
         </button>
 
         {/* ── Time Tracking — shown when timer is running or job is done ── */}
-        {(isAccepted || isSubmitted || isCompleted) && application && (
+        {(isAccepted || isSubmitted || isCompleted || isRevisionRequested) && application && (
           <div className="mb-6">
             <TimeDisplay application={application} job={job} role="seeker" />
+          </div>
+        )}
+
+        {/* ── Revision Requested Banner ── */}
+        {isRevisionRequested && (
+          <div className="mb-6 rounded-2xl border-2 border-orange-300 bg-orange-50 p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center shrink-0 mt-0.5">
+                <span className="text-xl">🔄</span>
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-orange-900">Poster Requested a Revision</h2>
+                <p className="text-sm text-orange-700">Please review the feedback below, make the changes, and resubmit your work.</p>
+              </div>
+            </div>
+
+            {application?.revisionFeedback && (
+              <div className="mb-4 p-4 bg-white border border-orange-200 rounded-xl">
+                <p className="text-sm font-bold text-slate-700 mb-2">📋 Poster's Feedback:</p>
+                <p className="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap">{application.revisionFeedback}</p>
+              </div>
+            )}
+
+            {application?.revisionDeadline && (
+              <div className="mb-4 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+                <span className="text-sm font-bold text-red-700">⏰ Resubmit by: {new Date(application.revisionDeadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+              </div>
+            )}
+
+            {application?.revisionCount > 1 && (
+              <p className="text-xs text-orange-600 mb-3">This is revision #{application.revisionCount}.</p>
+            )}
+
+            {/* Resubmit form */}
+            {!showEditSubmissionModal ? (
+              <button
+                onClick={() => {
+                  setEditedNotes(application?.submissionNotes || '');
+                  setEditedSubmissionFiles([]);
+                  setShowEditSubmissionModal(true);
+                }}
+                className="flex items-center gap-2 px-6 py-3 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition-all shadow-lg shadow-orange-100"
+              >
+                <Upload size={18} /> Resubmit Revised Work
+              </button>
+            ) : null}
           </div>
         )}
 
@@ -502,12 +549,14 @@ const SeekerJobDetail = () => {
               <span className={`px-3 py-1 rounded-full text-sm font-bold ${
                 isCompleted ? 'bg-emerald-100 text-emerald-700' :
                 isSubmitted ? 'bg-purple-100 text-purple-700' :
+                isRevisionRequested ? 'bg-orange-100 text-orange-700' :
                 isAccepted ? 'bg-blue-100 text-blue-700' :
                 isPending ? 'bg-yellow-100 text-yellow-700' :
                 'bg-red-100 text-red-700'
               }`}>
                 {isCompleted ? '✅ Completed & Paid' :
                  isSubmitted ? '📦 Work Submitted' :
+                 isRevisionRequested ? '🔄 Revision Requested' :
                  isAccepted ? (timerStarted ? '🚀 In Progress' : '🎉 Accepted — Start When Ready') :
                  isPending ? '⏳ Pending Review' : '❌ Rejected'}
               </span>

@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   Users, CheckCircle, XCircle,
   Edit, Trash2, ArrowLeft, Star, User,
-  Upload, Download, FileText, Clock, IndianRupee
+  Upload, Download, FileText, Clock, IndianRupee, RotateCcw, AlertTriangle
 } from 'lucide-react';
 import API from '../services/api';
 import { AuthContext } from '../context/AuthContext';
@@ -30,6 +30,12 @@ const PosterJobDetail = () => {
   const [editedInstructions, setEditedInstructions] = useState('');
   const [editedFiles, setEditedFiles] = useState([]);
   const [editFilesLoading, setEditFilesLoading] = useState(false);
+
+  const [showRevisionModal, setShowRevisionModal] = useState(false);
+  const [revisionApplicant, setRevisionApplicant] = useState(null);
+  const [revisionFeedback, setRevisionFeedback] = useState('');
+  const [revisionDeadline, setRevisionDeadline] = useState('');
+  const [revisionLoading, setRevisionLoading] = useState(false);
 
   const fetchJobDetails = useCallback(async () => {
     try {
@@ -162,6 +168,36 @@ const PosterJobDetail = () => {
     initiatePayment(applicant._id, fetchJobDetails);
   };
 
+  const handleRequestRevisionClick = (applicant) => {
+    setRevisionApplicant(applicant);
+    setRevisionFeedback('');
+    setRevisionDeadline('');
+    setShowRevisionModal(true);
+  };
+
+  const handleRevisionSubmit = async () => {
+    if (!revisionFeedback.trim()) {
+      alert('Please provide feedback explaining what needs to be revised.');
+      return;
+    }
+    try {
+      setRevisionLoading(true);
+      await API.put(`/applications/${revisionApplicant._id}/request-revision`, {
+        revisionFeedback,
+        revisionDeadline: revisionDeadline || null
+      });
+      setShowRevisionModal(false);
+      setRevisionFeedback('');
+      setRevisionDeadline('');
+      alert('Revision requested! The seeker has been notified.');
+      fetchJobDetails();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to request revision.');
+    } finally {
+      setRevisionLoading(false);
+    }
+  };
+
   const handleJobAction = async (action) => {
     try {
       if (action === 'delete') {
@@ -235,9 +271,11 @@ const PosterJobDetail = () => {
           applicant.status === 'rejected' ? 'bg-red-100 text-red-700' :
           applicant.status === 'completed' ? 'bg-blue-100 text-blue-700' :
           applicant.status === 'submitted' ? 'bg-purple-100 text-purple-700' :
+          applicant.status === 'revision_requested' ? 'bg-orange-100 text-orange-700' :
           'bg-yellow-100 text-yellow-700'
         }`}>
           {applicant.status === 'submitted' ? '📦 Work Submitted' :
+           applicant.status === 'revision_requested' ? '🔄 Revision Requested' :
            applicant.status === 'accepted' && !applicant.timerStartedAt ? '⏳ Awaiting Start' :
            applicant.status === 'accepted' ? '🚀 In Progress' :
            applicant.status}
@@ -366,10 +404,25 @@ const PosterJobDetail = () => {
           </>
         )}
         {applicant.status === 'submitted' && (
-          <button onClick={() => handlePayment(applicant)}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-bold shadow-lg shadow-emerald-100">
-            <IndianRupee size={16} /> Pay ₹{job.hourlyRate * job.hours} Now
-          </button>
+          <>
+            <button onClick={() => handlePayment(applicant)}
+              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-bold shadow-lg shadow-emerald-100">
+              <IndianRupee size={16} /> Pay ₹{job.hourlyRate * job.hours} Now
+            </button>
+            <button onClick={() => handleRequestRevisionClick(applicant)}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-bold">
+              <RotateCcw size={16} /> Request Revision
+            </button>
+          </>
+        )}
+        {applicant.status === 'revision_requested' && (
+          <div className="w-full p-3 bg-orange-50 border border-orange-200 rounded-lg text-sm text-orange-800">
+            <p className="font-bold mb-1 flex items-center gap-2"><AlertTriangle size={14} /> Revision Sent to Seeker</p>
+            <p className="text-xs">{applicant.revisionFeedback}</p>
+            {applicant.revisionDeadline && (
+              <p className="text-xs mt-1 font-medium">⏰ Deadline: {new Date(applicant.revisionDeadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+            )}
+          </div>
         )}
         <Link to={`/seeker/profile/${applicant.userId || applicant.seekerId || applicant._id}`}
           className="flex items-center gap-2 px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 text-sm font-medium">
@@ -566,6 +619,55 @@ const PosterJobDetail = () => {
               <button onClick={handleEditFilesSubmit} disabled={editFilesLoading || !editedInstructions.trim()}
                 className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50">
                 {editFilesLoading ? 'Updating...' : 'Update Files'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Revision Request Modal */}
+      {showRevisionModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-lg w-full shadow-2xl">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                <RotateCcw size={20} className="text-orange-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-black text-slate-900">Request Revision</h3>
+                <p className="text-slate-500 text-sm">{revisionApplicant?.name}</p>
+              </div>
+            </div>
+            <p className="text-slate-500 text-sm mb-6">Explain what needs to be changed. The seeker will be notified and can resubmit their work.</p>
+
+            <div className="mb-4">
+              <label className="block text-sm font-bold text-slate-700 mb-2">Feedback <span className="text-red-500">*</span></label>
+              <textarea
+                value={revisionFeedback}
+                onChange={(e) => setRevisionFeedback(e.target.value)}
+                placeholder="Describe exactly what needs to be changed, improved, or redone..."
+                rows={5}
+                className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 resize-none text-sm"
+              />
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-bold text-slate-700 mb-2">Revision Deadline <span className="text-slate-400 font-normal">(optional)</span></label>
+              <input
+                type="date"
+                value={revisionDeadline}
+                onChange={(e) => setRevisionDeadline(e.target.value)}
+                min={new Date().toISOString().split('T')[0]}
+                className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400 text-sm"
+              />
+              <p className="text-xs text-slate-400 mt-1">Set a date by which the seeker should resubmit.</p>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => { setShowRevisionModal(false); setRevisionFeedback(''); setRevisionDeadline(''); }}
+                className="flex-1 px-4 py-3 border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50">Cancel</button>
+              <button onClick={handleRevisionSubmit} disabled={revisionLoading || !revisionFeedback.trim()}
+                className="flex-1 px-4 py-3 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 disabled:opacity-50">
+                {revisionLoading ? 'Sending...' : '🔄 Send Revision Request'}
               </button>
             </div>
           </div>

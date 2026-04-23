@@ -185,6 +185,7 @@ const SeekerApplications = () => {
       case 'rejected': return <span className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded-full text-sm font-medium"><XCircle size={14} /> Rejected</span>;
       case 'completed': return <span className="flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"><CheckCircle size={14} /> Completed & Paid</span>;
       case 'submitted': return <span className="flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm font-medium"><Clock4 size={14} /> Submitted</span>;
+      case 'revision_requested': return <span className="flex items-center gap-1 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm font-medium"><Clock4 size={14} /> 🔄 Revision Needed</span>;
       default: return <span className="flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium"><Clock4 size={14} /> Pending</span>;
     }
   };

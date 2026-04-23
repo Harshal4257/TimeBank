@@ -9,7 +9,8 @@ const {
     cancelApplication,
     getPosterApplications,
     updateApplicationStatus,
-    submitWork
+    submitWork,
+    requestRevision
 } = require('../controllers/applicationController');
 const { protect } = require('../middleware/authMiddleware');
 const { uploadJobFiles } = require('../config/cloudinary');
@@ -124,6 +125,9 @@ router.put('/:id/start-timer', protect, async (req, res) => {
 // Seeker first submission (status must be 'accepted')
 router.put('/:id/submit', protect, uploadJobFiles.array('files', 5), submitWork);
 
+// Poster requests a revision
+router.put('/:id/request-revision', protect, requestRevision);
+
 // Seeker edits existing submission (status must be 'submitted')
 router.put('/:id/resubmit', protect, uploadJobFiles.array('files', 5), async (req, res) => {
     console.log('=== RESUBMIT HIT ===', req.params.id);
@@ -135,8 +139,8 @@ router.put('/:id/resubmit', protect, uploadJobFiles.array('files', 5), async (re
         if (application.seekerId.toString() !== req.user.id.toString()) {
             return res.status(401).json({ message: 'Not authorized' });
         }
-        if (application.status !== 'submitted') {
-            return res.status(400).json({ message: 'Can only edit submitted applications' });
+        if (application.status !== 'submitted' && application.status !== 'revision_requested') {
+            return res.status(400).json({ message: 'Can only resubmit for submitted or revision-requested applications' });
         }
 
         if (req.body.submissionNotes !== undefined) {
@@ -150,6 +154,9 @@ router.put('/:id/resubmit', protect, uploadJobFiles.array('files', 5), async (re
             }));
         }
 
+        // Always reset to 'submitted' so poster sees the fresh resubmission
+        application.status = 'submitted';
+        application.revisionFeedback = '';
         application.submittedAt = new Date();
         await application.save();
 
