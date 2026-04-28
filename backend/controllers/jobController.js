@@ -1,9 +1,23 @@
 const Job = require('../models/Job');
 const SavedJob = require('../models/SavedJob');
-const User = require('../models/User'); // Import User model
-const Message = require('../models/Message'); // Import Message model
-const Notification = require('../models/Notification'); // Import Notification model
+const User = require('../models/User');
+const Message = require('../models/Message');
+const Notification = require('../models/Notification');
+const Application = require('../models/Application');
 const calculateMatchScore = require('../utils/matchSkills');
+
+// ─────────────────────────────────────────────────────────────
+// Helper: returns IDs of ALL jobs whose deadline has passed.
+// These are hidden from ALL seeker-facing listing endpoints.
+// ─────────────────────────────────────────────────────────────
+const getExpiredJobIds = async () => {
+    const now = new Date();
+    const expiredJobs = await Job.find(
+        { deadline: { $lt: now } },
+        '_id'
+    ).lean();
+    return new Set(expiredJobs.map(j => j._id.toString()));
+};
 
 // @desc    Create a new job (Now includes category and hours from Task model)
 // @route   POST /api/jobs
@@ -77,22 +91,28 @@ const getPosterJobs = async (req, res) => {
     }
 };
 
-// @desc    Get all jobs (Generic feed)
+// @desc    Get all jobs (Generic feed — Seeker Marketplace)
 const getJobs = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 12;
         const skip = (page - 1) * limit;
 
-        const query = req.user ? { poster: { $ne: req.user.id } } : {};
-        
+        // Hide all deadline-expired jobs from seeker listings
+        const expiredIds = await getExpiredJobIds();
+
+        const baseFilter = req.user ? { poster: { $ne: req.user.id } } : {};
+        if (expiredIds.size > 0) {
+            baseFilter._id = { $nin: [...expiredIds] };
+        }
+
         const [jobs, total] = await Promise.all([
-            Job.find(query)
+            Job.find(baseFilter)
                 .populate('poster', 'name email rating numReviews')
                 .skip(skip)
                 .limit(limit)
                 .sort({ createdAt: -1 }),
-            Job.countDocuments(query)
+            Job.countDocuments(baseFilter)
         ]);
 
         res.json({
@@ -109,11 +129,21 @@ const getJobs = async (req, res) => {
 const getJobById = async (req, res) => {
     try {
         const job = await Job.findById(req.params.id).populate('poster', 'name email');
-        if (job) {
-            res.json(job);
-        } else {
-            res.status(404).json({ message: 'Job not found' });
+        if (!job) return res.status(404).json({ message: 'Job not found' });
+
+        // If deadline has passed, check if this seeker has an application.
+        // If no application exists → job is expired for this seeker.
+        if (job.deadline && new Date(job.deadline) < new Date() && req.user) {
+            const existingApp = await Application.findOne({
+                jobId: job._id,
+                seekerId: req.user.id
+            });
+            if (!existingApp) {
+                return res.status(404).json({ message: 'This job listing has expired.' });
+            }
         }
+
+        res.json(job);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -125,11 +155,16 @@ const getMatchingJobs = async (req, res) => {
         const userSkills = req.user.skills || [];
         console.log("DEBUG: Seeker Skills:", userSkills);
 
-        // Change this line to remove the 'status' filter temporarily
-        const allJobs = await Job.find({
-            poster: { $ne: req.user.id }
-            // status: 'Open'  <-- Comment this out!
-        }).populate('poster', 'name email rating numReviews');
+        // Hide all deadline-expired jobs
+        const expiredIds = await getExpiredJobIds();
+
+        const filter = { poster: { $ne: req.user.id } };
+        if (expiredIds.size > 0) {
+            filter._id = { $nin: [...expiredIds] };
+        }
+
+        const allJobs = await Job.find(filter)
+            .populate('poster', 'name email rating numReviews');
 
         console.log("DEBUG: Jobs available for matching:", allJobs.length);
 
@@ -138,7 +173,6 @@ const getMatchingJobs = async (req, res) => {
             return { ...job._doc, matchScore: Math.round(score * 100) };
         });
 
-        // Sort by matchScore in descending order
         matchingJobs.sort((a, b) => b.matchScore - a.matchScore);
 
         res.json(matchingJobs);
@@ -172,9 +206,17 @@ const unsaveJob = async (req, res) => {
 
 const getSavedJobs = async (req, res) => {
     try {
+        // Exclude all deadline-expired jobs from saved list
+        const expiredIds = await getExpiredJobIds();
+
         const savedJobs = await SavedJob.find({ seeker: req.user.id })
             .populate({ path: 'job', populate: { path: 'poster', select: 'name email' } });
-        res.json(savedJobs.map(s => s.job));
+
+        const visibleJobs = savedJobs
+            .map(s => s.job)
+            .filter(job => job && !expiredIds.has(job._id.toString()));
+
+        res.json(visibleJobs);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

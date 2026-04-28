@@ -193,6 +193,7 @@ const SeekerJobDetail = () => {
   const isPending = appStatus === 'pending';
   const isRevisionRequested = appStatus === 'revision_requested';
   const timerStarted = !!application?.timerStartedAt;
+  const isPaused = application?.timerStatus === 'paused';
 
   const postedDate = job.createdAt
     ? new Date(job.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -208,7 +209,12 @@ const SeekerJobDetail = () => {
         {/* ── Time Tracking — shown when timer is running or job is done ── */}
         {(isAccepted || isSubmitted || isCompleted || isRevisionRequested) && application && (
           <div className="mb-6">
-            <TimeDisplay application={application} job={job} role="seeker" />
+            <TimeDisplay
+              application={application}
+              job={job}
+              role="seeker"
+              onApplicationUpdate={(updated) => setApplication(updated)}
+            />
           </div>
         )}
 
@@ -282,7 +288,7 @@ const SeekerJobDetail = () => {
                     and instructions will be unlocked and your <span className="font-bold">{job.hours}-hour</span> countdown will begin.
                   </p>
                   <p className="text-xs text-amber-600 font-medium mt-2">
-                    ⚠️ Only click Start when you are ready — the timer cannot be paused or reset.
+                    ⚠️ Once started, the timer will run. You can pause it at any time and resume later within the allocated hours.
                   </p>
                 </div>
 

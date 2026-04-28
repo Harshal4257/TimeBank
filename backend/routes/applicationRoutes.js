@@ -95,7 +95,7 @@ router.get('/my', protect, getMyApplications);
 router.delete('/:id', protect, cancelApplication);
 router.put('/:id/complete', protect, completeJob);
 
-// ✅ Seeker starts the timer — inline handler (no separate controller needed)
+// ✅ Seeker starts the timer
 router.put('/:id/start-timer', protect, async (req, res) => {
     try {
         const Application = require('../models/Application');
@@ -113,11 +113,70 @@ router.put('/:id/start-timer', protect, async (req, res) => {
         }
 
         application.timerStartedAt = new Date();
+        application.timerStatus = 'running';
+        application.timerPausedAt = null;
+        application.totalPausedMs = 0;
         await application.save();
 
         res.json({ message: 'Timer started!', application });
     } catch (err) {
         console.error('Start timer error:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// ⏸ Seeker pauses the timer
+router.put('/:id/pause-timer', protect, async (req, res) => {
+    try {
+        const Application = require('../models/Application');
+        const application = await Application.findById(req.params.id);
+
+        if (!application) return res.status(404).json({ message: 'Application not found' });
+        if (application.seekerId.toString() !== req.user.id.toString()) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+        if (!application.timerStartedAt) {
+            return res.status(400).json({ message: 'Timer has not been started' });
+        }
+        if (application.timerStatus !== 'running') {
+            return res.status(400).json({ message: 'Timer is not running' });
+        }
+
+        application.timerPausedAt = new Date();
+        application.timerStatus = 'paused';
+        await application.save();
+
+        res.json({ message: 'Timer paused!', application });
+    } catch (err) {
+        console.error('Pause timer error:', err.message);
+        res.status(500).json({ message: err.message });
+    }
+});
+
+// ▶ Seeker resumes the timer
+router.put('/:id/resume-timer', protect, async (req, res) => {
+    try {
+        const Application = require('../models/Application');
+        const application = await Application.findById(req.params.id);
+
+        if (!application) return res.status(404).json({ message: 'Application not found' });
+        if (application.seekerId.toString() !== req.user.id.toString()) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+        if (application.timerStatus !== 'paused') {
+            return res.status(400).json({ message: 'Timer is not paused' });
+        }
+
+        // Accumulate how long this pause session lasted
+        const pauseDurationMs = Date.now() - new Date(application.timerPausedAt).getTime();
+        application.totalPausedMs = (application.totalPausedMs || 0) + pauseDurationMs;
+        application.timerPausedAt = null;
+        application.timerStatus = 'running';
+        await application.save();
+
+        res.json({ message: 'Timer resumed!', application });
+    } catch (err) {
+        console.error('Resume timer error:', err.message);
         res.status(500).json({ message: err.message });
     }
 });

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { Clock, CheckCircle, AlertCircle, PauseCircle, PlayCircle } from 'lucide-react';
+import API from '../services/api';
 
 // ─── Helpers ────────────────────────────────────────────────
 const formatDuration = (ms) => {
@@ -21,21 +22,62 @@ const formatDateTime = (date) => {
 
 // ─── TimeDisplay Component ───────────────────────────────────
 // Props:
-//   application  — the application object (has timerStartedAt, submittedAt, status)
+//   application  — the application object
 //   job          — the job object (has hours)
 //   role         — 'seeker' | 'poster'
+//   onApplicationUpdate — optional callback when app is updated (pause/resume)
 
-const TimeDisplay = ({ application, job, role = 'poster' }) => {
+const TimeDisplay = ({ application: initialApplication, job, role = 'poster', onApplicationUpdate }) => {
   const [now, setNow] = useState(Date.now());
+  const [application, setApplication] = useState(initialApplication);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  // Live clock — only ticks when timer is running (accepted + timerStartedAt set + not submitted)
+  // Keep local application in sync when prop changes
   useEffect(() => {
-    const isRunning =
-      application?.status === 'accepted' && application?.timerStartedAt;
+    setApplication(initialApplication);
+  }, [initialApplication]);
+
+  const timerStatus = application?.timerStatus || 'idle';
+  const isPaused = timerStatus === 'paused';
+  const isRunning = application?.status === 'accepted' && timerStatus === 'running';
+
+  // Live clock — ticks only when the timer is actively running (not paused)
+  useEffect(() => {
     if (!isRunning) return;
     const interval = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(interval);
-  }, [application?.status, application?.timerStartedAt]);
+  }, [isRunning]);
+
+  // ── Pause handler ──
+  const handlePause = async () => {
+    if (!application) return;
+    try {
+      setActionLoading(true);
+      const res = await API.put(`/applications/${application._id}/pause-timer`);
+      setApplication(res.data.application);
+      onApplicationUpdate?.(res.data.application);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to pause timer.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ── Resume handler ──
+  const handleResume = async () => {
+    if (!application) return;
+    try {
+      setActionLoading(true);
+      const res = await API.put(`/applications/${application._id}/resume-timer`);
+      setApplication(res.data.application);
+      onApplicationUpdate?.(res.data.application);
+      setNow(Date.now()); // kick the live clock immediately
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to resume timer.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   // ── Case 1: Not yet accepted ──
   if (!application || !application.acceptedAt) {
@@ -73,7 +115,7 @@ const TimeDisplay = ({ application, job, role = 'poster' }) => {
     );
   }
 
-  // ── Case 3: Timer is running or job is done ──
+  // ── Case 3: Timer started (running, paused, or job done) ──
   const timerStartedAt = new Date(application.timerStartedAt).getTime();
   const submittedAt = application.submittedAt
     ? new Date(application.submittedAt).getTime()
@@ -81,21 +123,32 @@ const TimeDisplay = ({ application, job, role = 'poster' }) => {
   const allowedMs = (job?.hours || 0) * 3600 * 1000;
   const deadlineMs = timerStartedAt + allowedMs;
 
-  const elapsedMs = submittedAt
-    ? submittedAt - timerStartedAt   // fixed once submitted
-    : now - timerStartedAt;          // live while running
+  // Total paused time accumulated in DB + ongoing pause (if currently paused)
+  const savedPausedMs = application.totalPausedMs || 0;
+  const ongoingPauseMs = isPaused && application.timerPausedAt
+    ? now - new Date(application.timerPausedAt).getTime()
+    : 0;
+  const totalPausedMs = savedPausedMs + ongoingPauseMs;
 
-  const remainingMs = deadlineMs - (submittedAt || now);
+  // Effective elapsed = wall-clock elapsed minus all paused time
+  const wallElapsedMs = submittedAt
+    ? submittedAt - timerStartedAt
+    : now - timerStartedAt;
+  const elapsedMs = Math.max(0, wallElapsedMs - totalPausedMs);
+
+  const remainingMs = allowedMs - (submittedAt ? submittedAt - timerStartedAt - savedPausedMs : elapsedMs);
   const isOverdue = remainingMs < 0;
-  const isRunning = application.status === 'accepted';
+  const isJobRunning = application.status === 'accepted'; // status-based (not paused check)
   const isSubmitted = application.status === 'submitted' || application.status === 'completed';
 
-  const submittedOnTime = submittedAt ? submittedAt <= deadlineMs : null;
+  const submittedOnTime = submittedAt ? (submittedAt - timerStartedAt - savedPausedMs) <= allowedMs : null;
   const progressPct = Math.min((elapsedMs / allowedMs) * 100, 100);
 
   // ── Status badge ──
   let badge = null;
-  if (isRunning) {
+  if (isJobRunning && isPaused) {
+    badge = { label: '⏸ Paused', bg: 'bg-yellow-100', text: 'text-yellow-700' };
+  } else if (isJobRunning) {
     badge = isOverdue
       ? { label: '⚠️ Overdue', bg: 'bg-red-100', text: 'text-red-700' }
       : { label: '🟢 In Progress', bg: 'bg-emerald-100', text: 'text-emerald-700' };
@@ -113,12 +166,52 @@ const TimeDisplay = ({ application, job, role = 'poster' }) => {
           <Clock className="w-5 h-5 text-blue-600" />
           <h3 className="text-base font-bold text-slate-800">Time Tracking</h3>
         </div>
-        {badge && (
-          <span className={`px-3 py-1 rounded-full text-xs font-bold ${badge.bg} ${badge.text}`}>
-            {badge.label}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {badge && (
+            <span className={`px-3 py-1 rounded-full text-xs font-bold ${badge.bg} ${badge.text}`}>
+              {badge.label}
+            </span>
+          )}
+
+          {/* ── Pause / Resume button — seeker only, while job is still accepted ── */}
+          {role === 'seeker' && isJobRunning && (
+            isPaused ? (
+              <button
+                onClick={handleResume}
+                disabled={actionLoading}
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-600 text-white rounded-full text-xs font-bold hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-sm"
+              >
+                <PlayCircle size={14} />
+                {actionLoading ? 'Resuming...' : 'Resume'}
+              </button>
+            ) : (
+              <button
+                onClick={handlePause}
+                disabled={actionLoading}
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-yellow-500 text-white rounded-full text-xs font-bold hover:bg-yellow-600 disabled:opacity-50 transition-all shadow-sm"
+              >
+                <PauseCircle size={14} />
+                {actionLoading ? 'Pausing...' : 'Pause'}
+              </button>
+            )
+          )}
+        </div>
       </div>
+
+      {/* Pause info bar — shown while paused */}
+      {isJobRunning && isPaused && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-xl flex items-center gap-2 text-sm text-yellow-800">
+          <PauseCircle size={16} className="shrink-0" />
+          <span>
+            Timer is <strong>paused</strong>. You can resume anytime to continue working on your remaining time.
+            {savedPausedMs > 0 && (
+              <span className="ml-1 text-xs text-yellow-600">
+                (Total paused so far: {formatDuration(savedPausedMs)})
+              </span>
+            )}
+          </span>
+        </div>
+      )}
 
       {/* Stats grid */}
       <div className="grid grid-cols-3 gap-3 mb-5">
@@ -128,14 +221,14 @@ const TimeDisplay = ({ application, job, role = 'poster' }) => {
         </div>
 
         <div className={`rounded-xl p-3 text-center ${
-          isRunning && isOverdue ? 'bg-red-50' :
+          isJobRunning && isOverdue ? 'bg-red-50' :
           isSubmitted && !submittedOnTime ? 'bg-orange-50' : 'bg-blue-50'
         }`}>
           <p className="text-xs text-slate-500 mb-1">
             {isSubmitted ? 'Time Taken' : 'Elapsed'}
           </p>
           <p className={`text-lg font-black ${
-            isRunning && isOverdue ? 'text-red-700' :
+            isJobRunning && isOverdue ? 'text-red-700' :
             isSubmitted && !submittedOnTime ? 'text-orange-700' : 'text-blue-800'
           }`}>
             {formatDuration(elapsedMs)}
@@ -143,22 +236,22 @@ const TimeDisplay = ({ application, job, role = 'poster' }) => {
         </div>
 
         <div className={`rounded-xl p-3 text-center ${
-          isRunning ? (isOverdue ? 'bg-red-50' : 'bg-emerald-50') : 'bg-slate-50'
+          isJobRunning ? (isOverdue ? 'bg-red-50' : 'bg-emerald-50') : 'bg-slate-50'
         }`}>
           <p className="text-xs text-slate-500 mb-1">
-            {isRunning ? 'Remaining' : (submittedOnTime ? 'Saved' : 'Over By')}
+            {isJobRunning ? 'Remaining' : (submittedOnTime ? 'Saved' : 'Over By')}
           </p>
           <p className={`text-lg font-black ${
-            isRunning && isOverdue ? 'text-red-700' :
-            isRunning ? 'text-emerald-700' :
+            isJobRunning && isOverdue ? 'text-red-700' :
+            isJobRunning ? 'text-emerald-700' :
             submittedOnTime ? 'text-emerald-700' : 'text-orange-700'
           }`}>
-            {isRunning
+            {isJobRunning
               ? (isOverdue ? `+${formatDuration(-remainingMs)}` : formatDuration(remainingMs))
               : submittedAt
                 ? (submittedOnTime
-                    ? formatDuration(deadlineMs - submittedAt)
-                    : `+${formatDuration(submittedAt - deadlineMs)}`)
+                    ? formatDuration(allowedMs - (submittedAt - timerStartedAt - savedPausedMs))
+                    : `+${formatDuration((submittedAt - timerStartedAt - savedPausedMs) - allowedMs)}`)
                 : '—'
             }
           </p>
@@ -201,8 +294,8 @@ const TimeDisplay = ({ application, job, role = 'poster' }) => {
         </div>
       </div>
 
-      {/* Seeker urgency message while running */}
-      {role === 'seeker' && isRunning && (
+      {/* Seeker urgency message while running (not paused) */}
+      {role === 'seeker' && isJobRunning && !isPaused && (
         <div className={`mt-4 p-3 rounded-xl text-sm font-medium ${
           isOverdue
             ? 'bg-red-50 text-red-700 border border-red-200'

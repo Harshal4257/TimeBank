@@ -97,9 +97,17 @@ const PosterDashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {postedJobs.map((job) => {
             const rating = jobRatings[job._id] || { avg: 0, count: 0 };
+            const isExpired = job.deadline && new Date(job.deadline) < new Date();
             return (
               <div key={job._id} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm hover:shadow-md transition-all">
-                <h3 className="text-lg font-bold text-slate-900 mb-2">{job.title}</h3>
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <h3 className="text-lg font-bold text-slate-900">{job.title}</h3>
+                  {isExpired && (
+                    <span className="shrink-0 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-bold rounded-full">
+                      ⌛ Deadline Passed
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-slate-500 mb-4 line-clamp-2">{job.description}</p>
 
                 {/* Rating row */}

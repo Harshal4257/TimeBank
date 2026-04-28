@@ -33,6 +33,21 @@ const applicationSchema = new mongoose.Schema({
         default: null
     },
 
+    // ✅ Pause / Resume support
+    timerStatus: {
+        type: String,
+        enum: ['idle', 'running', 'paused', 'stopped'],
+        default: 'idle'
+    },
+    timerPausedAt: {
+        type: Date,
+        default: null   // set when seeker pauses; cleared on resume
+    },
+    totalPausedMs: {
+        type: Number,
+        default: 0      // accumulates paused milliseconds across all sessions
+    },
+
     // Poster shares work with seeker
     posterInstructions: {
         type: String,
